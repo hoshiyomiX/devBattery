@@ -3,16 +3,17 @@
    =================================== */
 
 /* ===================================
-   Charging Bubbles Animation
+   Charging Bubbles Animation (RESTORED)
    =================================== */
 
 .bubble {
     position: absolute;
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.5);  /* More opaque */
     border-radius: 50%;
     animation: rise 4s infinite ease-in;
     bottom: -20px;
     pointer-events: none;
+    /* NO box-shadow glow */
 }
 
 @keyframes rise {
@@ -24,15 +25,18 @@
     20% {
         opacity: 1;
     }
-    50% {
-        transform: translateX(10px) scale(1.1);
+    40% {
+        transform: translateX(15px) scale(1.15);
+    }
+    60% {
+        transform: translateX(-10px) scale(1.05);
     }
     80% {
         opacity: 0.8;
     }
     100% {
         bottom: calc(100% + 20px);
-        transform: translateX(-10px) scale(0.8);
+        transform: translateX(8px) scale(0.7);
         opacity: 0;
     }
 }
@@ -64,35 +68,10 @@
 }
 
 /* ===================================
-   Pulse/Glow Effects
+   NO Pulse/Glow Effects (REMOVED)
    =================================== */
 
-@keyframes pulse-glow {
-    0%, 100% {
-        box-shadow: 0 0 20px var(--primary);
-    }
-    50% {
-        box-shadow: 0 0 30px var(--primary),
-                    0 0 40px var(--primary);
-    }
-}
-
-.liquid-fallback.charging {
-    animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* ===================================
-   Shimmer Effect (for liquid surface)
-   =================================== */
-
-@keyframes shimmer {
-    0%, 100% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-}
+/* Shimmer removed from liquid-fallback */
 
 /* ===================================
    Fade In/Out

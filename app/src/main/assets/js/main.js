@@ -11,6 +11,7 @@
     
     let fluidSim = null;
     let useWebGL = true;
+    let bubbleSpawnInterval = null;
     
     // ===================================
     // Initialization
@@ -19,22 +20,13 @@
     function init() {
         console.log('[Main] Initializing...');
         
-        // Initialize UI manager
         window.uiManager.init();
-        
-        // Setup theme
         initTheme();
-        
-        // Setup WebGL or fallback
         initVisuals();
         
-        // Start battery monitoring
         window.batteryManager.start(1000);
-        
-        // Subscribe to battery updates
         window.batteryManager.subscribe(onBatteryUpdate);
         
-        // Setup event listeners
         setupEventListeners();
         
         console.log('[Main] ✓ Ready');
@@ -73,15 +65,12 @@
             useWebGL = true;
             console.log('[Main] ✓ WebGL mode active');
             
-            // Hide CSS fallback
             const fallback = document.querySelector('.liquid-fallback');
             if (fallback) fallback.style.display = 'none';
             
         } catch (error) {
             console.error('[Main] WebGL init failed, using CSS fallback:', error);
             useWebGL = false;
-            
-            // Show CSS fallback
             canvas.style.display = 'none';
         }
     }
@@ -96,10 +85,8 @@
             return;
         }
         
-        // Update UI
         window.uiManager.update(data);
         
-        // Update WebGL if active
         if (useWebGL && fluidSim) {
             const color = window.uiManager.getBatteryColor(data.capacity);
             
@@ -107,9 +94,11 @@
             fluidSim.updateColor(...color.normalized);
             fluidSim.setCharging(data.isCharging);
         } else {
-            // Update CSS fallback
             updateCSSFallback(data);
         }
+        
+        // RESTORE BUBBLES for charging animation
+        toggleBubbleSpawning(data.isCharging);
     }
     
     function updateCSSFallback(data) {
@@ -120,14 +109,54 @@
         
         liquid.style.height = data.capacity + '%';
         liquid.style.backgroundColor = color.hex;
-        liquid.style.boxShadow = `0 0 20px ${color.hex}`;
+        // NO BOX SHADOW (glow removed)
+    }
+    
+    // ===================================
+    // BUBBLE SPAWNING (RESTORED)
+    // ===================================
+    
+    function toggleBubbleSpawning(enable) {
+        const container = document.getElementById('bubbles');
+        if (!container) return;
         
-        // Toggle charging animation
-        if (data.isCharging) {
-            liquid.classList.add('charging');
+        if (enable) {
+            if (!bubbleSpawnInterval) {
+                bubbleSpawnInterval = setInterval(() => {
+                    if (document.visibilityState === 'visible') {
+                        spawnRandomBubble(container);
+                    }
+                }, 600);  // Faster spawn rate
+            }
         } else {
-            liquid.classList.remove('charging');
+            if (bubbleSpawnInterval) {
+                clearInterval(bubbleSpawnInterval);
+                bubbleSpawnInterval = null;
+            }
+            container.innerHTML = '';
         }
+    }
+    
+    function spawnRandomBubble(container) {
+        if (container.children.length > 20) return;  // More bubbles allowed
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        
+        const size = Math.random() * 12 + 6;  // 6-18px (larger)
+        const left = Math.random() * 80 + 10;
+        const duration = Math.random() * 2 + 2.5;  // 2.5-4.5s (faster)
+        
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.left = left + '%';
+        bubble.style.animationDuration = duration + 's';
+        
+        container.appendChild(bubble);
+        
+        setTimeout(() => {
+            if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+        }, duration * 1000);
     }
     
     // ===================================
@@ -135,7 +164,6 @@
     // ===================================
     
     function setupEventListeners() {
-        // Debug panel triggers
         const batteryVisual = document.querySelector('.battery-visual');
         const badge = document.getElementById('root-badge');
         
@@ -151,37 +179,31 @@
             });
         }
         
-        // Window resize
         window.addEventListener('resize', () => {
             if (fluidSim) {
                 fluidSim.resize();
             }
         });
         
-        // Visibility change (pause when hidden)
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                console.log('[Main] App hidden, pausing updates');
-                // Could reduce update frequency here
+                console.log('[Main] App hidden');
             } else {
-                console.log('[Main] App visible, resuming');
+                console.log('[Main] App visible');
             }
         });
     }
     
     // ===================================
-    // Global Functions (called from HTML)
+    // Global Functions
     // ===================================
     
     window.showDebug = () => window.uiManager.showDebug();
     window.hideDebug = () => window.uiManager.hideDebug();
     window.copyDebug = () => window.uiManager.copyDebug();
     
-    // Theme change from Android
     window.applyTheme = (theme) => {
         window.uiManager.applyTheme(theme);
-        
-        // Re-update colors if battery data exists
         const lastData = window.batteryManager.lastData;
         if (lastData) {
             onBatteryUpdate(lastData);
@@ -192,7 +214,6 @@
     // Start App
     // ===================================
     
-    // Wait for DOM ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
