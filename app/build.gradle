@@ -7,14 +7,18 @@ android {
         applicationId "com.deviant.batterymonitor"
         minSdkVersion 21
         targetSdkVersion 31
-        versionCode 2
-        versionName "2.0"
+        versionCode 3
+        versionName "3.0-renuked"
     }
     
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // Force clean build by adding build config field
+            buildConfigField "long", "BUILD_TIME", System.currentTimeMillis() + "L"
         }
     }
     
