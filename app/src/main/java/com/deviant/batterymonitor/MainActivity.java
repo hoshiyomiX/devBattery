@@ -72,7 +72,7 @@ public class MainActivity extends Activity {
         try {
             File debugFile = new File(DEBUG_FILE);
             debugWriter = new FileWriter(debugFile, false);
-            logDebug("=== DevBattery Monitor Log (Lite Mode) ===");
+            logDebug("=== DevBattery Monitor Log (SEPolicy Modified) ===");
             logDebug("Timestamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
             logDebug("Device: " + android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL);
             
@@ -113,7 +113,7 @@ public class MainActivity extends Activity {
         
         @JavascriptInterface
         public String getRootStatus() {
-            // Root stripped version always returns false
+            // SEPolicy modified version - no root needed
             return "{\"checked\":true,\"hasRoot\":false}";
         }
         
@@ -146,17 +146,23 @@ public class MainActivity extends Activity {
                 int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
                 
-                logDebug(String.format(Locale.US, "Battery: %d%% | %s | %d mV | %d uA | %d dC", 
-                    capacity, statusStr, voltageMv, currentUa, tempDeci));
-                
                 // Build response
                 data.put("capacity", String.valueOf(capacity));
                 data.put("status", statusStr);
                 data.put("voltage", String.valueOf(voltageMv));
                 data.put("current_now", String.valueOf(currentUa));
                 data.put("temp", String.valueOf(tempDeci));
-                data.put("source", "standard_api");
-                data.put("charger_voltage", "0"); // Not supported without root
+                data.put("source", "sepolicy_modified");
+                
+                // Try to read charger voltage directly (SELinux policy allows this)
+                String chargerVoltage = "0";
+                if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
+                    chargerVoltage = readChargerVoltageDirect();
+                }
+                data.put("charger_voltage", chargerVoltage);
+                
+                logDebug(String.format(Locale.US, "Battery: %d%% | %s | %d mV | %d uA | %d dC | Charger: %s mV", 
+                    capacity, statusStr, voltageMv, currentUa, tempDeci, chargerVoltage));
                 
                 return data.toString();
             } catch (Exception e) {
@@ -164,6 +170,39 @@ public class MainActivity extends Activity {
                 e.printStackTrace();
                 return "{\"error\":\"" + e.getMessage() + "\"}";
             }
+        }
+        
+        private String readChargerVoltageDirect() {
+            // Read charger voltage directly without root (SEPolicy modified)
+            String[] possiblePaths = {
+                "/sys/devices/platform/charger/ADC_Charger_Voltage",
+                "/sys/class/power_supply/usb/voltage_now",
+                "/sys/class/power_supply/ac/voltage_now"
+            };
+            
+            for (String path : possiblePaths) {
+                try {
+                    File file = new File(path);
+                    if (file.exists() && file.canRead()) {
+                        BufferedReader reader = new BufferedReader(new FileReader(file));
+                        String value = reader.readLine();
+                        reader.close();
+                        
+                        if (value != null && !value.isEmpty()) {
+                            value = value.trim();
+                            // Some paths return voltage in microvolts, convert to millivolts
+                            if (value.length() > 4) {
+                                long microvolts = Long.parseLong(value);
+                                return String.valueOf(microvolts / 1000);
+                            }
+                            return value;
+                        }
+                    }
+                } catch (Exception e) {
+                    logDebug("Failed to read " + path + ": " + e.getMessage());
+                }
+            }
+            return "0";
         }
         
         private String getStatusString(int status) {
@@ -187,7 +226,7 @@ public class MainActivity extends Activity {
             info.append("Debug file: ").append(DEBUG_FILE).append("\n\n");
             info.append("Device: ").append(android.os.Build.MANUFACTURER).append(" ").append(android.os.Build.MODEL).append("\n");
             info.append("Android: ").append(android.os.Build.VERSION.RELEASE).append("\n");
-            info.append("Version: Lite (No Root)\n\n");
+            info.append("Version: SEPolicy Modified (No Root Required)\n\n");
             
             try {
                 IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
@@ -205,6 +244,15 @@ public class MainActivity extends Activity {
                 info.append("✓ Voltage: ").append(voltageMv).append(" mV\n");
                 info.append("✓ Current: ").append(current).append(" µA\n");
                 info.append("✓ Temp: ").append(tempDeci).append(" dC\n");
+                
+                if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
+                    String chargerVoltage = readChargerVoltageDirect();
+                    if (!chargerVoltage.equals("0")) {
+                        info.append("✓ Charger Voltage: ").append(chargerVoltage).append(" mV (SEPolicy)\n");
+                    } else {
+                        info.append("✗ Charger Voltage: Not available\n");
+                    }
+                }
                 
             } catch (Exception e) {
                 info.append("❌ API failed: ").append(e.getMessage());
