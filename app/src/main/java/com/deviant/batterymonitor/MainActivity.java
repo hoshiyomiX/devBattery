@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
     
     private static final String DEBUG_FILE = "/sdcard/battery_debug.txt";
     private static final int MAX_HISTORY = 10;
+    private static final String BUILD_VERSION = "RENUKED v3.0 - NO ROOT";
     private FileWriter debugWriter;
     private BatteryManager batteryManager;
     private WebView webView;
@@ -35,6 +36,9 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         startTime = System.currentTimeMillis();
+        
+        // SHOW BUILD MARKER - This proves APK is from renuked branch
+        Toast.makeText(this, "✓ " + BUILD_VERSION, Toast.LENGTH_LONG).show();
         
         // Initialize BatteryManager
         batteryManager = (BatteryManager) getSystemService(Context.BATTERY_SERVICE);
@@ -80,12 +84,15 @@ public class MainActivity extends Activity {
             
             logDebug("========== DEVBATTERY MONITOR DEBUG LOG ==========");
             logDebug("");
+            logDebug("--- BUILD INFO ---");
+            logDebug("Build: " + BUILD_VERSION);
+            logDebug("Package: com.deviant.batterymonitor");
+            logDebug("");
             logDebug("--- SESSION INFO ---");
             logDebug("Timestamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
             logDebug("Device: " + Build.MANUFACTURER + " " + Build.MODEL);
             logDebug("Android: " + Build.VERSION.RELEASE + " (SDK " + Build.VERSION.SDK_INT + ")");
             logDebug("Board: " + Build.BOARD);
-            logDebug("Version: SEPolicy Modified (No Root Required)");
             
             int uiMode = getResources().getConfiguration().uiMode;
             boolean isDark = (uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
@@ -103,7 +110,6 @@ public class MainActivity extends Activity {
             try {
                 logDebug("--- CHECKING AVC DENIALS ---");
                 
-                // Try to read kernel log for AVC denials
                 Process process = Runtime.getRuntime().exec("logcat -d -b all -v time");
                 BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                 
@@ -188,7 +194,6 @@ public class MainActivity extends Activity {
                     return data.toString();
                 }
                 
-                // Get battery data
                 int capacity = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
                 int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
                 String statusStr = getStatusString(status);
@@ -196,13 +201,11 @@ public class MainActivity extends Activity {
                 int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
                 
-                // Try to read charger voltage
                 String chargerVoltage = "0";
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
                     chargerVoltage = readChargerVoltageDirect();
                 }
                 
-                // Build response
                 data.put("capacity", String.valueOf(capacity));
                 data.put("status", statusStr);
                 data.put("voltage", String.valueOf(voltageMv));
@@ -211,7 +214,6 @@ public class MainActivity extends Activity {
                 data.put("source", "sepolicy_modified");
                 data.put("charger_voltage", chargerVoltage);
                 
-                // Add to history
                 String historyEntry = String.format(Locale.US, 
                     "[%s] %d%% | %s | %.2fV | %dmA | %.1f°C | Charger: %smV",
                     getTimeStamp(), capacity, statusStr, voltageMv/1000.0, 
@@ -222,7 +224,6 @@ public class MainActivity extends Activity {
                     batteryHistory.remove(0);
                 }
                 
-                // Log periodically (every 10 updates)
                 if (updateCount % 10 == 0) {
                     logDebug("--- BATTERY UPDATE #" + updateCount + " ---");
                     logDebug(historyEntry);
@@ -259,7 +260,6 @@ public class MainActivity extends Activity {
                         
                         if (value != null && !value.isEmpty()) {
                             value = value.trim();
-                            // Convert microvolts to millivolts if needed
                             if (value.length() > 4) {
                                 long microvolts = Long.parseLong(value);
                                 return String.valueOf(microvolts / 1000);
@@ -268,7 +268,7 @@ public class MainActivity extends Activity {
                         }
                     }
                 } catch (FileNotFoundException e) {
-                    // Path doesn't exist, try next
+                    // Path doesn't exist
                 } catch (SecurityException e) {
                     logDebug("[" + getTimeStamp() + "] ⚠️ SELinux denied: " + path);
                     logDebug("  Reason: " + e.getMessage());
@@ -301,21 +301,21 @@ public class MainActivity extends Activity {
             try {
                 info.append("========== DEVBATTERY DEBUG INFO ==========\n\n");
                 
-                // System info
+                info.append("--- BUILD INFO ---\n");
+                info.append("Build: ").append(BUILD_VERSION).append("\n");
+                info.append("Package: com.deviant.batterymonitor\n\n");
+                
                 info.append("--- SYSTEM INFO ---\n");
                 info.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
                 info.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append(")\n");
                 info.append("Board: ").append(Build.BOARD).append("\n");
-                info.append("Version: SEPolicy Modified\n");
                 info.append("Debug Log: ").append(DEBUG_FILE).append("\n\n");
                 
-                // Runtime stats
                 long uptime = (System.currentTimeMillis() - startTime) / 1000;
                 info.append("--- SESSION STATS ---\n");
                 info.append("Uptime: ").append(uptime).append(" seconds\n");
                 info.append("Updates: ").append(updateCount).append("\n\n");
                 
-                // Current battery state
                 IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
                 Intent batteryStatus = registerReceiver(null, ifilter);
                 
@@ -332,7 +332,6 @@ public class MainActivity extends Activity {
                 info.append("✓ Current: ").append(current).append(" µA (").append(current/1000).append(" mA)\n");
                 info.append("✓ Temp: ").append(tempDeci).append(" dC (").append(String.format(Locale.US, "%.1f", tempDeci/10.0)).append(" °C)\n");
                 
-                // Charger voltage
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
                     String chargerVoltage = readChargerVoltageDirect();
                     if (!chargerVoltage.equals("0")) {
@@ -342,7 +341,6 @@ public class MainActivity extends Activity {
                     }
                 }
                 
-                // History
                 if (!batteryHistory.isEmpty()) {
                     info.append("\n--- BATTERY HISTORY (Last ").append(batteryHistory.size()).append(") ---\n");
                     for (String entry : batteryHistory) {
@@ -365,6 +363,7 @@ public class MainActivity extends Activity {
             if (debugWriter != null) {
                 long uptime = (System.currentTimeMillis() - startTime) / 1000;
                 logDebug("--- SESSION END ---");
+                logDebug("Build: " + BUILD_VERSION);
                 logDebug("Total Updates: " + updateCount);
                 logDebug("Uptime: " + uptime + " seconds");
                 logDebug("Timestamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
