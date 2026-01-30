@@ -36,6 +36,11 @@ on:
         options:
           - debug
           - release
+      clean_build:
+        description: 'Force clean build (disable cache)'
+        required: false
+        default: true
+        type: boolean
 
 jobs:
   build:
@@ -55,13 +60,15 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
+          # Disable cache for clean builds or when clean_build input is true
+          cache: ${{ github.event.inputs.clean_build == 'false' && 'gradle' || '' }}
       
       - name: Display build info
         run: |
           echo "===== BUILD INFORMATION =====" | tee -a build_log.txt
           echo "Branch: ${{ github.event.inputs.branch || github.ref_name }}" | tee -a build_log.txt
           echo "Build type: ${{ github.event.inputs.build_type || 'debug' }}" | tee -a build_log.txt
+          echo "Clean build: ${{ github.event.inputs.clean_build || 'true' }}" | tee -a build_log.txt
           echo "Triggered by: ${{ github.event_name }}" | tee -a build_log.txt
           echo "Commit SHA: ${{ github.sha }}" | tee -a build_log.txt
           echo "Timestamp: $(date)" | tee -a build_log.txt
@@ -71,12 +78,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       
+      - name: Clean build directories
+        if: ${{ github.event.inputs.clean_build != 'false' }}
+        run: |
+          echo "===== CLEANING BUILD CACHE =====" | tee -a build_log.txt
+          ./gradlew clean --info 2>&1 | tee -a build_log.txt
+          rm -rf .gradle
+          rm -rf app/build
+          rm -rf build
+          echo "Build cache cleaned" | tee -a build_log.txt
+          echo "" | tee -a build_log.txt
+      
       - name: Build Debug APK
         if: ${{ github.event.inputs.build_type == 'debug' || github.event.inputs.build_type == '' }}
         continue-on-error: true
         run: |
           echo "===== STARTING DEBUG BUILD =====" | tee -a build_log.txt
-          ./gradlew assembleDebug --stacktrace --info 2>&1 | tee -a build_log.txt
+          ./gradlew assembleDebug --no-build-cache --rerun-tasks --stacktrace --info 2>&1 | tee -a build_log.txt
           echo "" | tee -a build_log.txt
           echo "Build exit code: $?" | tee -a build_log.txt
       
@@ -85,7 +103,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "===== STARTING RELEASE BUILD =====" | tee -a build_log.txt
-          ./gradlew assembleRelease --stacktrace --info 2>&1 | tee -a build_log.txt
+          ./gradlew assembleRelease --no-build-cache --rerun-tasks --stacktrace --info 2>&1 | tee -a build_log.txt
           echo "" | tee -a build_log.txt
           echo "Build exit code: $?" | tee -a build_log.txt
       
@@ -95,13 +113,22 @@ jobs:
           echo "" | tee -a build_log.txt
           echo "===== BUILD OUTPUTS =====" | tee -a build_log.txt
           find app/build/outputs -name "*.apk" -type f 2>&1 | tee -a build_log.txt || echo "No APK files found" | tee -a build_log.txt
+          echo "" | tee -a build_log.txt
+          echo "===== APK INFO =====" | tee -a build_log.txt
+          for apk in app/build/outputs/apk/*/*.apk; do
+            if [ -f "$apk" ]; then
+              echo "File: $apk" | tee -a build_log.txt
+              ls -lh "$apk" | tee -a build_log.txt
+              unzip -p "$apk" AndroidManifest.xml | grep -a "versionCode\|versionName" || true | tee -a build_log.txt
+            fi
+          done
           echo "========================" | tee -a build_log.txt
       
       - name: Upload Debug APK
         if: ${{ (github.event.inputs.build_type == 'debug' || github.event.inputs.build_type == '') && success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: DevBattery-Monitor-Debug-${{ github.event.inputs.branch || github.ref_name }}
+          name: DevBattery-Monitor-Debug-${{ github.event.inputs.branch || github.ref_name }}-${{ github.run_number }}
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
           if-no-files-found: warn
@@ -110,7 +137,7 @@ jobs:
         if: ${{ github.event.inputs.build_type == 'release' && success() }}
         uses: actions/upload-artifact@v4
         with:
-          name: DevBattery-Monitor-Release-${{ github.event.inputs.branch || github.ref_name }}
+          name: DevBattery-Monitor-Release-${{ github.event.inputs.branch || github.ref_name }}-${{ github.run_number }}
           path: app/build/outputs/apk/release/*.apk
           retention-days: 90
           if-no-files-found: warn
@@ -151,6 +178,7 @@ jobs:
           echo "" >> README.md
           echo "Latest build log from workflow run #${{ github.run_number }}" >> README.md
           echo "Branch: ${{ github.event.inputs.branch || github.ref_name }}" >> README.md
+          echo "Clean Build: ${{ github.event.inputs.clean_build || 'true' }}" >> README.md
           echo "Timestamp: $(date)" >> README.md
           
           # Add and commit
@@ -169,6 +197,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** ${{ github.event.inputs.branch || github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Type:** ${{ github.event.inputs.build_type || 'debug' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Clean Build:** ${{ github.event.inputs.clean_build || 'true' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Run Number:** #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
