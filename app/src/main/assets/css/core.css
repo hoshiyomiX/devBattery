@@ -1,0 +1,177 @@
+/* ===================================
+   CORE.CSS - CSS Variables & Reset
+   =================================== */
+
+:root {
+    /* Material Design 3 - Dark Theme */
+    --primary: #D0BCFF;
+    --on-primary: #381E72;
+    --primary-container: #4F378B;
+    --on-primary-container: #EADDFF;
+    --background: #1C1B1F;
+    --on-background: #E6E1E5;
+    --surface: #1C1B1F;
+    --surface-variant: #49454F;
+    --on-surface-variant: #CAC4D0;
+    --error: #F2B8B5;
+    --error-container: #8C1D18;
+    --outline: #938F99;
+    --success: #8CD6A3;
+    --warning: #EFB041;
+    
+    /* Battery Colors */
+    --battery-critical: #F2B8B5;
+    --battery-low: #EFB041;
+    --battery-medium: #D0BCFF;
+    --battery-high: #8CD6A3;
+    
+    /* Animation Timing */
+    --transition-fast: 0.15s;
+    --transition-normal: 0.3s;
+    --transition-slow: 0.5s;
+    --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --easing-decelerate: cubic-bezier(0, 0, 0.2, 1);
+    --easing-accelerate: cubic-bezier(0.4, 0, 1, 1);
+    
+    /* Spacing */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+    --space-2xl: 32px;
+    
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+    --radius-full: 9999px;
+    
+    /* Typography */
+    --font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-md: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 22px;
+    --font-size-2xl: 28px;
+    --font-size-3xl: 48px;
+}
+
+/* Light Theme Override */
+[data-theme="light"] {
+    --primary: #6750A4;
+    --on-primary: #FFFFFF;
+    --primary-container: #EADDFF;
+    --on-primary-container: #21005D;
+    --background: #FFFBFE;
+    --on-background: #1C1B1F;
+    --surface: #FFFBFE;
+    --surface-variant: #E7E0EC;
+    --on-surface-variant: #49454F;
+    --error: #B3261E;
+    --error-container: #F9DEDC;
+    --outline: #79747E;
+    --success: #2E7D32;
+    --warning: #E65100;
+    
+    /* Light Battery Colors */
+    --battery-critical: #B3261E;
+    --battery-low: #E65100;
+    --battery-medium: #6750A4;
+    --battery-high: #2E7D32;
+}
+
+/* ===================================
+   CSS Reset
+   =================================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+*::before,
+*::after {
+    box-sizing: inherit;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-md);
+    line-height: 1.5;
+    color: var(--on-background);
+    background-color: var(--background);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    transition: background-color var(--transition-normal), 
+                color var(--transition-normal);
+}
+
+/* Remove default button styles */
+button {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+/* Remove default link styles */
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Image defaults */
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* SVG defaults */
+svg {
+    display: block;
+    fill: currentColor;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+.invisible {
+    visibility: hidden;
+}
+
+.no-scroll {
+    overflow: hidden;
+}
+
+/* Screen reader only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
