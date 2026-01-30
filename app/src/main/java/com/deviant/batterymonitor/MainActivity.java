@@ -17,17 +17,24 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends Activity {
     
     private static final String DEBUG_FILE = "/sdcard/battery_debug.txt";
+    private static final int MAX_HISTORY = 10;
     private FileWriter debugWriter;
     private BatteryManager batteryManager;
-    private WebView webView; // Store WebView reference for theme changes
+    private WebView webView;
+    private List<String> batteryHistory = new ArrayList<>();
+    private int updateCount = 0;
+    private long startTime;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        startTime = System.currentTimeMillis();
         
         // Initialize BatteryManager
         batteryManager = (BatteryManager) getSystemService(Context.BATTERY_SERVICE);
@@ -44,20 +51,18 @@ public class MainActivity extends Activity {
         webView.loadUrl("file:///android_asset/index.html");
         
         initDebugFile();
+        checkAVCDenials();
     }
     
-    // Detect system theme changes and notify JavaScript
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         
-        // Detect theme change
         boolean isDark = (newConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
         String theme = isDark ? "dark" : "light";
         
         logDebug("[THEME] System theme changed to: " + theme);
         
-        // Notify JavaScript
         if (webView != null) {
             runOnUiThread(() -> {
                 webView.evaluateJavascript(
@@ -72,18 +77,67 @@ public class MainActivity extends Activity {
         try {
             File debugFile = new File(DEBUG_FILE);
             debugWriter = new FileWriter(debugFile, false);
-            logDebug("=== DevBattery Monitor Log (SEPolicy Modified) ===");
-            logDebug("Timestamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
-            logDebug("Device: " + android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL);
             
-            // Log initial theme
+            logDebug("========== DEVBATTERY MONITOR DEBUG LOG ==========");
+            logDebug("");
+            logDebug("--- SESSION INFO ---");
+            logDebug("Timestamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
+            logDebug("Device: " + Build.MANUFACTURER + " " + Build.MODEL);
+            logDebug("Android: " + Build.VERSION.RELEASE + " (SDK " + Build.VERSION.SDK_INT + ")");
+            logDebug("Board: " + Build.BOARD);
+            logDebug("Version: SEPolicy Modified (No Root Required)");
+            
             int uiMode = getResources().getConfiguration().uiMode;
             boolean isDark = (uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
             logDebug("Initial Theme: " + (isDark ? "dark" : "light"));
+            logDebug("");
+            
             debugWriter.flush();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    private void checkAVCDenials() {
+        new Thread(() -> {
+            try {
+                logDebug("--- CHECKING AVC DENIALS ---");
+                
+                // Try to read kernel log for AVC denials
+                Process process = Runtime.getRuntime().exec("logcat -d -b all -v time");
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                
+                String line;
+                int denialCount = 0;
+                List<String> recentDenials = new ArrayList<>();
+                
+                while ((line = reader.readLine()) != null && denialCount < 5) {
+                    if (line.contains("avc: denied") || line.contains("avc:  denied")) {
+                        if (line.contains("sysfs") || line.contains("battery") || line.contains("charger")) {
+                            recentDenials.add(line);
+                            denialCount++;
+                        }
+                    }
+                }
+                
+                reader.close();
+                process.destroy();
+                
+                if (denialCount > 0) {
+                    logDebug("⚠️ Found " + denialCount + " AVC denial(s) related to battery/charger:");
+                    for (String denial : recentDenials) {
+                        logDebug(denial);
+                    }
+                } else {
+                    logDebug("✓ No recent AVC denials found for battery/charger access");
+                }
+                logDebug("");
+                
+            } catch (Exception e) {
+                logDebug("Cannot read logcat (expected on user builds): " + e.getMessage());
+                logDebug("");
+            }
+        }).start();
     }
     
     private void logDebug(String message) {
@@ -97,6 +151,10 @@ public class MainActivity extends Activity {
         }
     }
     
+    private String getTimeStamp() {
+        return new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+    }
+    
     public class BatteryBridge {
         
         @JavascriptInterface
@@ -104,16 +162,14 @@ public class MainActivity extends Activity {
             try {
                 int uiMode = getResources().getConfiguration().uiMode;
                 boolean isDark = (uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-                String theme = isDark ? "dark" : "light";
-                return theme;
+                return isDark ? "dark" : "light";
             } catch (Exception e) {
-                return "dark"; // Default to dark on error
+                return "dark";
             }
         }
         
         @JavascriptInterface
         public String getRootStatus() {
-            // SEPolicy modified version - no root needed
             return "{\"checked\":true,\"hasRoot\":false}";
         }
         
@@ -121,30 +177,30 @@ public class MainActivity extends Activity {
         public String getBatteryData() {
             try {
                 JSONObject data = new JSONObject();
+                updateCount++;
                 
-                // Get battery status from Intent
                 IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
                 Intent batteryStatus = registerReceiver(null, ifilter);
                 
                 if (batteryStatus == null) {
-                    logDebug("ERROR: Battery Intent is null!");
+                    logDebug("[" + getTimeStamp() + "] ERROR: Battery Intent is null!");
                     data.put("error", "Battery Intent unavailable");
                     return data.toString();
                 }
                 
-                // Get capacity from BatteryManager (API 21+)
+                // Get battery data
                 int capacity = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-                
-                // Get status from Intent
                 int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
                 String statusStr = getStatusString(status);
-                
-                // Get current from BatteryManager (API 21+)
                 int currentUa = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-                
-                // Get voltage & temperature from Intent (API 1+)
                 int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
+                
+                // Try to read charger voltage
+                String chargerVoltage = "0";
+                if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
+                    chargerVoltage = readChargerVoltageDirect();
+                }
                 
                 // Build response
                 data.put("capacity", String.valueOf(capacity));
@@ -153,31 +209,44 @@ public class MainActivity extends Activity {
                 data.put("current_now", String.valueOf(currentUa));
                 data.put("temp", String.valueOf(tempDeci));
                 data.put("source", "sepolicy_modified");
-                
-                // Try to read charger voltage directly (SELinux policy allows this)
-                String chargerVoltage = "0";
-                if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
-                    chargerVoltage = readChargerVoltageDirect();
-                }
                 data.put("charger_voltage", chargerVoltage);
                 
-                logDebug(String.format(Locale.US, "Battery: %d%% | %s | %d mV | %d uA | %d dC | Charger: %s mV", 
-                    capacity, statusStr, voltageMv, currentUa, tempDeci, chargerVoltage));
+                // Add to history
+                String historyEntry = String.format(Locale.US, 
+                    "[%s] %d%% | %s | %.2fV | %dmA | %.1f°C | Charger: %smV",
+                    getTimeStamp(), capacity, statusStr, voltageMv/1000.0, 
+                    currentUa/1000, tempDeci/10.0, chargerVoltage);
+                
+                batteryHistory.add(historyEntry);
+                if (batteryHistory.size() > MAX_HISTORY) {
+                    batteryHistory.remove(0);
+                }
+                
+                // Log periodically (every 10 updates)
+                if (updateCount % 10 == 0) {
+                    logDebug("--- BATTERY UPDATE #" + updateCount + " ---");
+                    logDebug(historyEntry);
+                    
+                    if (!chargerVoltage.equals("0")) {
+                        logDebug("✓ Charger voltage detected: " + chargerVoltage + " mV");
+                    }
+                    logDebug("");
+                }
                 
                 return data.toString();
             } catch (Exception e) {
-                logDebug("ERROR in getBatteryData: " + e.getMessage());
+                logDebug("[" + getTimeStamp() + "] ERROR in getBatteryData: " + e.getMessage());
                 e.printStackTrace();
                 return "{\"error\":\"" + e.getMessage() + "\"}";
             }
         }
         
         private String readChargerVoltageDirect() {
-            // Read charger voltage directly without root (SEPolicy modified)
             String[] possiblePaths = {
                 "/sys/devices/platform/charger/ADC_Charger_Voltage",
                 "/sys/class/power_supply/usb/voltage_now",
-                "/sys/class/power_supply/ac/voltage_now"
+                "/sys/class/power_supply/ac/voltage_now",
+                "/sys/class/power_supply/battery/input_voltage_now"
             };
             
             for (String path : possiblePaths) {
@@ -190,7 +259,7 @@ public class MainActivity extends Activity {
                         
                         if (value != null && !value.isEmpty()) {
                             value = value.trim();
-                            // Some paths return voltage in microvolts, convert to millivolts
+                            // Convert microvolts to millivolts if needed
                             if (value.length() > 4) {
                                 long microvolts = Long.parseLong(value);
                                 return String.valueOf(microvolts / 1000);
@@ -198,8 +267,13 @@ public class MainActivity extends Activity {
                             return value;
                         }
                     }
+                } catch (FileNotFoundException e) {
+                    // Path doesn't exist, try next
+                } catch (SecurityException e) {
+                    logDebug("[" + getTimeStamp() + "] ⚠️ SELinux denied: " + path);
+                    logDebug("  Reason: " + e.getMessage());
                 } catch (Exception e) {
-                    logDebug("Failed to read " + path + ": " + e.getMessage());
+                    logDebug("[" + getTimeStamp() + "] Failed to read " + path + ": " + e.getMessage());
                 }
             }
             return "0";
@@ -223,39 +297,61 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String getDebugInfo() {
             StringBuilder info = new StringBuilder();
-            info.append("Debug file: ").append(DEBUG_FILE).append("\n\n");
-            info.append("Device: ").append(android.os.Build.MANUFACTURER).append(" ").append(android.os.Build.MODEL).append("\n");
-            info.append("Android: ").append(android.os.Build.VERSION.RELEASE).append("\n");
-            info.append("Version: SEPolicy Modified (No Root Required)\n\n");
             
             try {
+                info.append("========== DEVBATTERY DEBUG INFO ==========\n\n");
+                
+                // System info
+                info.append("--- SYSTEM INFO ---\n");
+                info.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
+                info.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append(")\n");
+                info.append("Board: ").append(Build.BOARD).append("\n");
+                info.append("Version: SEPolicy Modified\n");
+                info.append("Debug Log: ").append(DEBUG_FILE).append("\n\n");
+                
+                // Runtime stats
+                long uptime = (System.currentTimeMillis() - startTime) / 1000;
+                info.append("--- SESSION STATS ---\n");
+                info.append("Uptime: ").append(uptime).append(" seconds\n");
+                info.append("Updates: ").append(updateCount).append("\n\n");
+                
+                // Current battery state
                 IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
                 Intent batteryStatus = registerReceiver(null, ifilter);
                 
                 int capacity = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
                 int current = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-                
                 int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
                 int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
                 
+                info.append("--- CURRENT STATE ---\n");
                 info.append("✓ Capacity: ").append(capacity).append("%\n");
                 info.append("✓ Status: ").append(getStatusString(status)).append("\n");
-                info.append("✓ Voltage: ").append(voltageMv).append(" mV\n");
-                info.append("✓ Current: ").append(current).append(" µA\n");
-                info.append("✓ Temp: ").append(tempDeci).append(" dC\n");
+                info.append("✓ Voltage: ").append(voltageMv).append(" mV (").append(String.format(Locale.US, "%.2f", voltageMv/1000.0)).append(" V)\n");
+                info.append("✓ Current: ").append(current).append(" µA (").append(current/1000).append(" mA)\n");
+                info.append("✓ Temp: ").append(tempDeci).append(" dC (").append(String.format(Locale.US, "%.1f", tempDeci/10.0)).append(" °C)\n");
                 
+                // Charger voltage
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
                     String chargerVoltage = readChargerVoltageDirect();
                     if (!chargerVoltage.equals("0")) {
-                        info.append("✓ Charger Voltage: ").append(chargerVoltage).append(" mV (SEPolicy)\n");
+                        info.append("✓ Charger: ").append(chargerVoltage).append(" mV (SEPolicy)\n");
                     } else {
-                        info.append("✗ Charger Voltage: Not available\n");
+                        info.append("✗ Charger: Not available (check SEPolicy)\n");
+                    }
+                }
+                
+                // History
+                if (!batteryHistory.isEmpty()) {
+                    info.append("\n--- BATTERY HISTORY (Last ").append(batteryHistory.size()).append(") ---\n");
+                    for (String entry : batteryHistory) {
+                        info.append(entry).append("\n");
                     }
                 }
                 
             } catch (Exception e) {
-                info.append("❌ API failed: ").append(e.getMessage());
+                info.append("❌ Error generating debug info: ").append(e.getMessage());
             }
             
             return info.toString();
@@ -267,6 +363,12 @@ public class MainActivity extends Activity {
         super.onDestroy();
         try {
             if (debugWriter != null) {
+                long uptime = (System.currentTimeMillis() - startTime) / 1000;
+                logDebug("--- SESSION END ---");
+                logDebug("Total Updates: " + updateCount);
+                logDebug("Uptime: " + uptime + " seconds");
+                logDebug("Timestamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
+                logDebug("\n========================================\n");
                 debugWriter.close();
             }
         } catch (Exception e) {
