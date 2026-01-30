@@ -6,12 +6,14 @@ on:
       - battery-monitor
       - master
       - checkpoint
+      - renuked
       - main
   pull_request:
     branches:
       - battery-monitor
       - master
       - checkpoint
+      - renuked
       - main
   workflow_dispatch:
     inputs:
@@ -23,6 +25,8 @@ on:
         options:
           - battery-monitor
           - master
+          - renuked
+          - checkpoint
           - main
       build_type:
         description: 'Build type'
