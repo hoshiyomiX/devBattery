@@ -5,100 +5,492 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
     <meta name="theme-color" content="#1C1B1F">
     <title>devBattery Monitor</title>
-    
-    <!-- Modular CSS -->
-    <link rel="stylesheet" href="css/core.css">
-    <link rel="stylesheet" href="css/layout.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/animations.css">
+    <style>
+        :root {
+            --primary: #D0BCFF;
+            --on-primary: #381E72;
+            --primary-container: #4F378B;
+            --on-primary-container: #EADDFF;
+            --background: #1C1B1F;
+            --on-background: #E6E1E5;
+            --surface: #1C1B1F;
+            --surface-variant: #49454F;
+            --on-surface-variant: #CAC4D0;
+            --error: #F2B8B5;
+            --error-container: #8C1D18;
+            --outline: #938F99;
+            --success: #8CD6A3;
+            --warning: #EFB041;
+        }
+
+        [data-theme="light"] {
+            --primary: #6750A4;
+            --on-primary: #FFFFFF;
+            --primary-container: #EADDFF;
+            --on-primary-container: #21005D;
+            --background: #FFFBFE;
+            --on-background: #1C1B1F;
+            --surface: #FFFBFE;
+            --surface-variant: #E7E0EC;
+            --on-surface-variant: #49454F;
+            --error: #B3261E;
+            --error-container: #F9DEDC;
+            --outline: #79747E;
+            --success: #2E7D32;
+            --warning: #E65100;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--background);
+            color: var(--on-background);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Header */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+        
+        .header-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-title {
+            font-size: 22px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .app-subtitle {
+            font-size: 14px;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0.9;
+        }
+        
+        .telegram-icon {
+            width: 16px;
+            height: 16px;
+            fill: var(--primary);
+        }
+
+        /* Status Badge */
+        .root-badge {
+            background-color: var(--surface-variant);
+            color: var(--on-surface-variant);
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--outline);
+            opacity: 0.8;
+        }
+
+        .root-badge.non-rooted {
+            background-color: var(--primary-container);
+            color: var(--on-primary-container);
+            border-color: transparent;
+        }
+
+        .root-icon {
+            font-size: 14px;
+        }
+
+        /* Battery Visual */
+        .battery-visual {
+            height: 280px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .liquid-container {
+            width: 140px;
+            height: 240px;
+            border: 4px solid var(--outline);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+            background: rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="light"] .liquid-container {
+            background: rgba(255,255,255,0.5);
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        /* Battery Cap */
+        .liquid-container::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 10px;
+            background: var(--outline);
+            border-radius: 4px 4px 0 0;
+        }
+
+        .liquid {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--primary);
+            transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s;
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        .liquid::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: inherit;
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        /* Charging Animation (Bubbles) */
+        .bubbles {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            animation: rise 4s infinite ease-in;
+            bottom: -20px;
+        }
+        
+        @keyframes rise {
+            0% {
+                bottom: -20px;
+                transform: translateX(0);
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(10px);
+            }
+            80% {
+                opacity: 0.8;
+            }
+            100% {
+                bottom: calc(100% + 20px);
+                transform: translateX(-10px);
+                opacity: 0;
+            }
+        }
+        
+        /* Discharging Animation (Leaking Drips) */
+        .drain-leak-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1; 
+        }
+
+        .drip {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            filter: drop-shadow(0 0 2px rgba(0,0,0,0.2));
+            opacity: 0.9;
+            z-index: 20;
+        }
+        
+        .splash-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        /* Center Info */
+        .center-info {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 10;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        [data-theme="light"] .center-info {
+            text-shadow: 0 2px 4px rgba(255,255,255,0.8);
+            color: #000;
+        }
+
+        .capacity-text {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .status-text {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .stat-card {
+            background-color: var(--surface-variant);
+            padding: 16px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:active {
+            transform: scale(0.98);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--on-background);
+        }
+
+        .unit {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* Floating Error */
+        .error-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--error-container);
+            color: var(--error);
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .error-toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Debug Overlay */
+        .debug-card {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--background);
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+            padding: 16px;
+        }
+        
+        .debug-card.show {
+            transform: translateY(0);
+        }
+        
+        .debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--outline);
+        }
+        
+        .debug-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--on-background);
+            font-size: 24px;
+            padding: 8px;
+        }
+        
+        .debug-content {
+            flex: 1;
+            background-color: var(--surface-variant);
+            color: var(--on-surface-variant);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            margin-bottom: 16px;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+        
+        .debug-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .action-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 24px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .btn-copy {
+            background-color: var(--primary);
+            color: var(--on-primary);
+        }
+
+        .safe-area-bottom {
+            height: 20px;
+        }
+    </style>
 </head>
 <body>
-    <!-- Global Drain Leak Overlay -->
     <div class="drain-leak-overlay" id="drain-leak-overlay"></div>
     
     <div class="container">
-        <!-- Header -->
         <header class="app-header">
             <div class="header-left">
                 <h1 class="app-title">devBattery Monitor</h1>
                 <a href="https://t.me/hoshiyomi_id" class="app-subtitle">
-                    <svg class="telegram-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <svg class="telegram-icon" viewBox="0 0 24 24">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
                     </svg>
                     <span>t.me/hoshiyomi_id</span>
                 </a>
             </div>
-            
-            <!-- SEPolicy Badge -->
-            <div class="root-badge non-rooted" id="root-badge">
+            <div class="root-badge non-rooted" id="root-badge" onclick="showDebug()">
                 <span class="root-icon">✓</span>
                 <span id="root-text">SEPolicy</span>
             </div>
         </header>
         
-        <!-- Battery Visual (WebGL + Fallback) -->
-        <div class="battery-visual">
+        <div class="battery-visual" onclick="showDebug()">
             <div class="liquid-container">
-                <!-- WebGL Canvas (Primary) -->
-                <canvas id="fluid-canvas"></canvas>
-                
-                <!-- CSS Fallback (if WebGL fails) -->
-                <div class="liquid-fallback" style="height: 50%"></div>
-                
-                <!-- Charging Bubbles (legacy, optional) -->
+                <div class="liquid" id="liquid-fill" style="height: 50%"></div>
                 <div class="bubbles" id="bubbles"></div>
             </div>
             
-            <!-- Capacity & Status Overlay -->
             <div class="center-info">
                 <div class="capacity-text"><span id="capacity-value">--</span>%</div>
                 <div class="status-text" id="status-label">Loading...</div>
             </div>
         </div>
         
-        <!-- Stats Grid -->
         <div class="stats-grid">
             <div class="stat-card">
                 <span class="stat-label">Voltage</span>
-                <div class="stat-value">
-                    <span id="voltage-value">--</span>
-                    <span class="unit">V</span>
-                </div>
+                <div class="stat-value"><span id="voltage-value">--</span> <span class="unit">V</span></div>
             </div>
-            
             <div class="stat-card">
                 <span class="stat-label">Current</span>
-                <div class="stat-value">
-                    <span id="current-value">--</span>
-                    <span class="unit">mA</span>
-                </div>
+                <div class="stat-value"><span id="current-value">--</span> <span class="unit">mA</span></div>
             </div>
-            
             <div class="stat-card">
                 <span class="stat-label">Power</span>
-                <div class="stat-value">
-                    <span id="power-value">--</span>
-                    <span class="unit">W</span>
-                </div>
+                <div class="stat-value"><span id="power-value">--</span> <span class="unit">W</span></div>
             </div>
-            
             <div class="stat-card">
                 <span class="stat-label">Temperature</span>
-                <div class="stat-value">
-                    <span id="temp-value">--</span>
-                    <span class="unit">°C</span>
-                </div>
+                <div class="stat-value"><span id="temp-value">--</span> <span class="unit">°C</span></div>
             </div>
         </div>
         
-        <!-- Safe Area Bottom -->
         <div class="safe-area-bottom"></div>
     </div>
 
-    <!-- Error Toast -->
     <div class="error-toast" id="error-toast">Connection Error</div>
     
-    <!-- Debug Panel -->
     <div class="debug-card" id="debug-card">
         <div class="debug-header">
             <span class="debug-title">Debug Log</span>
@@ -110,10 +502,300 @@
         </div>
     </div>
 
-    <!-- Modular JavaScript (order matters) -->
-    <script src="js/fluid-sim.js"></script>
-    <script src="js/battery.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/main.js"></script>
+    <script>
+        let lastStatus = '';
+        let currentCapacity = 0;
+        let currentTheme = 'dark';
+        let isCharging = false;
+        let bubbleSpawnInterval = null;
+        let drainLeakTimeout = null;
+        let activeDrainLeaks = 0;
+        const MAX_DRAIN_LEAKS = 3;
+        const MIN_INTERVAL = 5000;
+        const MAX_INTERVAL = 10000;
+        const DROPLET_DURATION = 1100;
+        
+        function applyTheme(theme) {
+            currentTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            if (currentCapacity > 0) updateLiquid(currentCapacity);
+        }
+        
+        try {
+            if (typeof Android !== 'undefined' && Android.getSystemTheme) {
+                applyTheme(Android.getSystemTheme());
+            } else {
+                applyTheme('dark');
+            }
+        } catch (e) {
+            applyTheme('dark');
+        }
+
+        function updateBattery() {
+            try {
+                if (typeof Android === 'undefined') return;
+                
+                const data = JSON.parse(Android.getBatteryData());
+                if (data.error) {
+                    showError('Error: ' + data.error);
+                    return;
+                }
+                
+                const capacity = parseInt(data.capacity) || 0;
+                currentCapacity = capacity;
+                const status = data.status || lastStatus || "Unknown";
+                lastStatus = status;
+                
+                const voltage = (parseInt(data.voltage) || 0) / 1000;
+                const current = Math.floor((parseInt(data.current_now) || 0) / 1000);
+                const temperature = (parseInt(data.temp) || 0) / 10;
+                const power = Math.abs((parseInt(data.voltage) || 0) * (parseInt(data.current_now) || 0) / 1000000000);
+                
+                document.getElementById('capacity-value').textContent = capacity;
+                document.getElementById('status-label').textContent = status;
+                document.getElementById('voltage-value').textContent = voltage.toFixed(2);
+                document.getElementById('current-value').textContent = current;
+                document.getElementById('power-value').textContent = power.toFixed(2);
+                document.getElementById('temp-value').textContent = temperature.toFixed(1);
+                
+                updateLiquid(capacity);
+                
+                const chargingActive = status.toLowerCase() === 'charging';
+                toggleBubbleSpawning(chargingActive);
+                
+                const isDraining = status.toLowerCase() === 'discharging' || status.toLowerCase() === 'not charging';
+                toggleDrainLeak(isDraining);
+                
+                hideError();
+            } catch (e) {
+                showError('Data Error');
+            }
+        }
+        
+        function getBatteryColor(percentage) {
+            const isLight = currentTheme === 'light';
+            const colors = {
+                critical: isLight ? '#B3261E' : '#F2B8B5',
+                low: isLight ? '#E65100' : '#EFB041',
+                medium: isLight ? '#6750A4' : '#D0BCFF',
+                high: isLight ? '#2E7D32' : '#8CD6A3'
+            };
+            
+            if (percentage <= 15) return colors.critical;
+            if (percentage <= 30) return colors.low;
+            if (percentage <= 80) return colors.medium;
+            return colors.high;
+        }
+
+        function updateLiquid(percentage) {
+            const liquid = document.getElementById('liquid-fill');
+            const color = getBatteryColor(percentage);
+            liquid.style.height = percentage + '%';
+            liquid.style.backgroundColor = color;
+            liquid.style.boxShadow = `0 0 20px ${color}`;
+            
+            document.querySelector('.app-subtitle').style.color = color;
+            document.querySelectorAll('.telegram-icon').forEach(icon => icon.style.fill = color);
+            
+            const badge = document.querySelector('.root-badge.non-rooted');
+            if (badge) {
+                badge.style.backgroundColor = color + '20';
+                badge.style.color = color;
+            }
+        }
+        
+        function toggleBubbleSpawning(enable) {
+            if (isCharging === enable) return;
+            isCharging = enable;
+            
+            const container = document.getElementById('bubbles');
+            if (enable) {
+                if (!bubbleSpawnInterval) {
+                    bubbleSpawnInterval = setInterval(() => {
+                        if (document.visibilityState === 'visible') {
+                            spawnRandomBubble(container);
+                        }
+                    }, 800);
+                }
+            } else {
+                if (bubbleSpawnInterval) {
+                    clearInterval(bubbleSpawnInterval);
+                    bubbleSpawnInterval = null;
+                }
+                container.innerHTML = '';
+            }
+        }
+        
+        function spawnRandomBubble(container) {
+            if (container.children.length > 15) return;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            const size = Math.random() * 10 + 5;
+            const left = Math.random() * 80 + 10;
+            const duration = Math.random() * 2 + 3;
+            
+            bubble.style.width = size + 'px';
+            bubble.style.height = size + 'px';
+            bubble.style.left = left + '%';
+            bubble.style.animationDuration = duration + 's';
+            
+            container.appendChild(bubble);
+            setTimeout(() => {
+                if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+            }, duration * 1000);
+        }
+        
+        function toggleDrainLeak(enable) {
+            if (enable) {
+                scheduleNextDrainLeak();
+            } else {
+                if (drainLeakTimeout) {
+                    clearTimeout(drainLeakTimeout);
+                    drainLeakTimeout = null;
+                }
+            }
+        }
+
+        function scheduleNextDrainLeak() {
+            if (drainLeakTimeout) clearTimeout(drainLeakTimeout);
+            
+            const delay = Math.random() * (MAX_INTERVAL - MIN_INTERVAL) + MIN_INTERVAL;
+            drainLeakTimeout = setTimeout(() => {
+                if (document.visibilityState === 'visible') {
+                    spawnDrainLeak();
+                }
+                scheduleNextDrainLeak();
+            }, delay);
+        }
+
+        function spawnDrainLeak() {
+            if (activeDrainLeaks >= MAX_DRAIN_LEAKS) return;
+            activeDrainLeaks++;
+            
+            const overlay = document.getElementById('drain-leak-overlay');
+            const startX = Math.random() * (window.innerWidth - 20) + 10;
+            const color = getBatteryColor(currentCapacity);
+            
+            const drip = document.createElement('div');
+            drip.className = 'drip';
+            drip.style.left = startX + 'px';
+            drip.style.top = '-20px';
+            drip.style.backgroundColor = color;
+            
+            overlay.appendChild(drip);
+            
+            const startTime = performance.now();
+            const startY = -20;
+            const endY = window.innerHeight - 20;
+            
+            function animateDrop(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / DROPLET_DURATION, 1);
+                const currentY = startY + (endY - startY) * (progress * progress);
+                
+                drip.style.transform = `translateY(${currentY}px)`;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animateDrop);
+                } else {
+                    createSplash(startX, endY, color);
+                    if (drip.parentNode) drip.parentNode.removeChild(drip);
+                    activeDrainLeaks--;
+                }
+            }
+            
+            requestAnimationFrame(animateDrop);
+        }
+
+        function createSplash(x, y, color) {
+            const overlay = document.getElementById('drain-leak-overlay');
+            const particleCount = 6 + Math.floor(Math.random() * 4);
+            
+            for (let i = 0; i < particleCount; i++) {
+                const p = document.createElement('div');
+                p.className = 'splash-particle';
+                p.style.left = x + 'px';
+                p.style.top = y + 'px';
+                p.style.backgroundColor = color;
+                
+                const angle = (Math.random() * 180 + 180) * (Math.PI / 180);
+                const velocity = Math.random() * 6 + 2;
+                const dx = Math.cos(angle) * velocity;
+                const dy = Math.sin(angle) * velocity;
+                
+                overlay.appendChild(p);
+                
+                const pStart = performance.now();
+                
+                function animateParticle(now) {
+                    const elapsed = now - pStart;
+                    if (elapsed > 400) {
+                        if (p.parentNode) p.parentNode.removeChild(p);
+                        return;
+                    }
+                    
+                    const progress = elapsed / 400;
+                    const moveX = dx * elapsed * 0.1;
+                    const moveY = (dy * elapsed * 0.1) + (0.5 * 0.05 * elapsed * elapsed * 0.01);
+                    
+                    p.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                    p.style.opacity = 1 - progress;
+                    
+                    requestAnimationFrame(animateParticle);
+                }
+                
+                requestAnimationFrame(animateParticle);
+            }
+        }
+        
+        function showError(msg) {
+            const toast = document.getElementById('error-toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(hideError, 3000);
+        }
+        
+        function hideError() {
+            document.getElementById('error-toast').classList.remove('show');
+        }
+        
+        function showDebug() {
+            try {
+                if (typeof Android !== 'undefined') {
+                    document.getElementById('debug-output').textContent = Android.getDebugInfo();
+                    document.getElementById('debug-card').classList.add('show');
+                }
+            } catch (e) {
+                showError('Debug unavailable');
+            }
+        }
+        
+        function hideDebug() {
+            document.getElementById('debug-card').classList.remove('show');
+        }
+        
+        function copyDebug() {
+            const content = document.getElementById('debug-output').textContent;
+            const textarea = document.createElement('textarea');
+            textarea.value = content;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showError('✅ Copied!');
+            } catch (e) {
+                showError('❌ Failed to copy');
+            }
+            document.body.removeChild(textarea);
+        }
+        
+        console.log('[INIT] 🚀 DevBattery Monitor v3.0 - Renuked (Clean UI)');
+        updateBattery();
+        setInterval(updateBattery, 1000);
+    </script>
 </body>
 </html>
