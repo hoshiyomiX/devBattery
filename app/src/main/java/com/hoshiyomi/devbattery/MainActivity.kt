@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.io.File
 import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
@@ -26,6 +27,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var themeManager: ThemeManager
     private var hasRootAccess = false
     private var rootCheckDone = false
+    
+    // Voltage debug tracking
+    private val voltageAttemptLog = mutableListOf<VoltageAttempt>()
+    private val maxLogEntries = 50
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -130,7 +135,7 @@ class MainActivity : AppCompatActivity() {
         )
         
         for (path in paths) {
-            if (java.io.File(path).exists()) return true
+            if (File(path).exists()) return true
         }
         
         return try {
@@ -143,6 +148,17 @@ class MainActivity : AppCompatActivity() {
             false
         }
     }
+    
+    data class VoltageAttempt(
+        val timestamp: Long,
+        val path: String,
+        val method: String,
+        val success: Boolean,
+        val value: Int,
+        val error: String?,
+        val exitCode: Int?,
+        val selinuxDenied: Boolean
+    )
 
     inner class AndroidBridge {
         
@@ -179,12 +195,13 @@ class MainActivity : AppCompatActivity() {
                     bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
                 } else 0
                 
+                // Try multiple voltage paths with detailed logging
                 val chargerVoltage = if (hasRootAccess) {
-                    readSysfsFile("/sys/class/power_supply/usb/voltage_now")
+                    tryMultipleVoltagePaths()
                 } else 0
                 
                 val powerNow = if (hasRootAccess) {
-                    readSysfsFile("/sys/class/power_supply/battery/power_now")
+                    readSysfsFileWithLogging("/sys/class/power_supply/battery/power_now", "power_now")
                 } else 0
                 
                 JSONObject().apply {
@@ -207,10 +224,50 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun getDebugInfo(): String {
             return buildString {
+                append("========== VOLTAGE TILE DEBUG ==========\n\n")
+                
+                append("--- SYSTEM INFO ---\n")
                 append("Device: ${Build.MANUFACTURER} ${Build.MODEL}\n")
                 append("Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})\n")
+                append("Kernel: ${System.getProperty("os.version")}\n")
                 append("Root Access: ${if (hasRootAccess) "YES" else "NO"}\n")
-                append("Current Theme: ${themeManager.getCurrentTheme()}\n")
+                append("Current Theme: ${themeManager.getCurrentTheme()}\n\n")
+                
+                append("--- VOLTAGE READ ATTEMPTS (Last ${voltageAttemptLog.size}) ---\n")
+                if (voltageAttemptLog.isEmpty()) {
+                    append("No attempts yet\n")
+                } else {
+                    voltageAttemptLog.takeLast(20).forEach { attempt ->
+                        val timeStr = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+                            .format(java.util.Date(attempt.timestamp))
+                        append("[$timeStr] ${attempt.path}\n")
+                        append("  Method: ${attempt.method}\n")
+                        append("  Success: ${attempt.success}\n")
+                        if (attempt.success) {
+                            append("  Value: ${attempt.value} (${attempt.value / 1000.0}V)\n")
+                        } else {
+                            append("  Error: ${attempt.error}\n")
+                            append("  Exit Code: ${attempt.exitCode}\n")
+                            append("  SELinux Denied: ${attempt.selinuxDenied}\n")
+                        }
+                        append("\n")
+                    }
+                }
+                
+                append("\n--- SYSFS FILE EXPLORATION ---\n")
+                append(explorePowerSupplyFiles())
+                
+                append("\n--- LOGCAT (Last 30 lines, filtered: power_supply, voltage) ---\n")
+                append(getLogcat())
+                
+                append("\n--- DMESG (Last 30 lines, filtered: power, voltage, charger) ---\n")
+                append(getDmesg())
+                
+                append("\n--- SELINUX AVC DENIALS (Last 20) ---\n")
+                append(getSelinuxDenials())
+                
+                append("\n--- FILE PERMISSIONS CHECK ---\n")
+                append(checkFilePermissions())
             }
         }
         
@@ -239,17 +296,169 @@ class MainActivity : AppCompatActivity() {
             }.start()
         }
         
-        private fun readSysfsFile(path: String): Int {
+        private fun tryMultipleVoltagePaths(): Int {
+            val paths = listOf(
+                "/sys/class/power_supply/usb/voltage_now",
+                "/sys/class/power_supply/usb/input_voltage_now",
+                "/sys/class/power_supply/usb/voltage_max",
+                "/sys/class/power_supply/ac/voltage_now",
+                "/sys/class/power_supply/battery/input_suspend",
+                "/sys/class/qcom-battery/voltage_now",
+                "/sys/class/power_supply/main/voltage_now"
+            )
+            
+            for (path in paths) {
+                val value = readSysfsFileWithLogging(path, "charger_voltage")
+                if (value > 0) return value
+            }
+            
+            return 0
+        }
+        
+        private fun readSysfsFileWithLogging(path: String, label: String): Int {
             if (!hasRootAccess) return 0
             
-            return try {
+            val startTime = System.currentTimeMillis()
+            var value = 0
+            var error: String? = null
+            var exitCode: Int? = null
+            var selinuxDenied = false
+            
+            try {
                 val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "cat $path"))
                 val reader = BufferedReader(InputStreamReader(process.inputStream))
+                val errorReader = BufferedReader(InputStreamReader(process.errorStream))
+                
                 val line = reader.readLine()
+                val errorOutput = errorReader.readText()
+                
                 process.waitFor()
-                line?.trim()?.toIntOrNull() ?: 0
+                exitCode = process.exitValue()
+                
+                if (exitCode == 0 && line != null) {
+                    value = line.trim().toIntOrNull() ?: 0
+                } else {
+                    error = errorOutput.ifEmpty { "Empty output or parse error" }
+                    selinuxDenied = errorOutput.contains("Permission denied") || 
+                                    errorOutput.contains("selinux") ||
+                                    errorOutput.contains("avc")
+                }
+                
             } catch (e: Exception) {
-                0
+                error = e.message ?: e.javaClass.simpleName
+            }
+            
+            val attempt = VoltageAttempt(
+                timestamp = startTime,
+                path = path,
+                method = "su -c cat",
+                success = value > 0,
+                value = value,
+                error = error,
+                exitCode = exitCode,
+                selinuxDenied = selinuxDenied
+            )
+            
+            voltageAttemptLog.add(attempt)
+            if (voltageAttemptLog.size > maxLogEntries) {
+                voltageAttemptLog.removeAt(0)
+            }
+            
+            return value
+        }
+        
+        private fun explorePowerSupplyFiles(): String {
+            if (!hasRootAccess) return "Root required\n"
+            
+            return try {
+                val process = Runtime.getRuntime().exec(arrayOf(
+                    "su", "-c", 
+                    "find /sys/class/power_supply -name '*voltage*' -o -name '*charger*' 2>/dev/null | head -50"
+                ))
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
+                val output = reader.readText()
+                process.waitFor()
+                output.ifEmpty { "No voltage/charger files found\n" }
+            } catch (e: Exception) {
+                "Error: ${e.message}\n"
+            }
+        }
+        
+        private fun getLogcat(): String {
+            if (!hasRootAccess) return "Root required\n"
+            
+            return try {
+                val process = Runtime.getRuntime().exec(arrayOf(
+                    "su", "-c",
+                    "logcat -d -t 30 -e 'power_supply|voltage|charger' *:W"
+                ))
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
+                val output = reader.readText()
+                process.waitFor()
+                output.ifEmpty { "No matching logcat entries\n" }
+            } catch (e: Exception) {
+                "Error: ${e.message}\n"
+            }
+        }
+        
+        private fun getDmesg(): String {
+            if (!hasRootAccess) return "Root required\n"
+            
+            return try {
+                val process = Runtime.getRuntime().exec(arrayOf(
+                    "su", "-c",
+                    "dmesg | grep -iE 'power|voltage|charger' | tail -30"
+                ))
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
+                val output = reader.readText()
+                process.waitFor()
+                output.ifEmpty { "No matching dmesg entries\n" }
+            } catch (e: Exception) {
+                "Error: ${e.message}\n"
+            }
+        }
+        
+        private fun getSelinuxDenials(): String {
+            if (!hasRootAccess) return "Root required\n"
+            
+            return try {
+                val process = Runtime.getRuntime().exec(arrayOf(
+                    "su", "-c",
+                    "dmesg | grep 'avc.*denied' | tail -20"
+                ))
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
+                val output = reader.readText()
+                process.waitFor()
+                output.ifEmpty { "No AVC denials found (good!)\n" }
+            } catch (e: Exception) {
+                "Error: ${e.message}\n"
+            }
+        }
+        
+        private fun checkFilePermissions(): String {
+            if (!hasRootAccess) return "Root required\n"
+            
+            val paths = listOf(
+                "/sys/class/power_supply/usb/voltage_now",
+                "/sys/class/power_supply/battery/voltage_now",
+                "/sys/class/power_supply/ac/voltage_now"
+            )
+            
+            return buildString {
+                paths.forEach { path ->
+                    try {
+                        val process = Runtime.getRuntime().exec(arrayOf(
+                            "su", "-c",
+                            "ls -lZ $path 2>&1"
+                        ))
+                        val reader = BufferedReader(InputStreamReader(process.inputStream))
+                        val output = reader.readLine()
+                        process.waitFor()
+                        append("$path:\n  $output\n")
+                    } catch (e: Exception) {
+                        append("$path: Error - ${e.message}\n")
+                    }
+                }
             }
         }
     }
