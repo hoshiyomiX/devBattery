@@ -187,15 +187,40 @@ class MainActivity : AppCompatActivity() {
                     else -> "Unknown"
                 }
                 
-                val voltage = batteryStatus?.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) ?: 0
                 val temp = batteryStatus?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+                
+                // VOLTAGE CHANGE: Removed BatteryManager.EXTRA_VOLTAGE
+                // Now relying on sysfs or fallback to 1V (1000mV)
+                var voltage = 0
+                if (hasRootAccess) {
+                    // Try to read battery voltage from sysfs (uV)
+                    // Common paths for battery voltage
+                    val paths = listOf(
+                        "/sys/class/power_supply/battery/voltage_now",
+                        "/sys/class/power_supply/bms/voltage_now",
+                        "/sys/class/qcom-battery/voltage_now"
+                    )
+                    
+                    for (path in paths) {
+                        val v = readSysfsFileWithLogging(path, "battery_voltage")
+                        if (v > 0) {
+                            voltage = v / 1000 // Convert uV to mV
+                            break
+                        }
+                    }
+                }
+                
+                // Fallback to 1V (1000mV) if reading fails, to prevent power calc issues (P = V*I)
+                if (voltage == 0) {
+                    voltage = 1000
+                }
                 
                 val bm = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
                 val currentNow = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
                 } else 0
                 
-                // Try multiple voltage paths with detailed logging
+                // Try multiple voltage paths for charger voltage (uV)
                 val chargerVoltage = if (hasRootAccess) {
                     tryMultipleVoltagePaths()
                 } else 0
@@ -207,7 +232,7 @@ class MainActivity : AppCompatActivity() {
                 JSONObject().apply {
                     put("capacity", capacity)
                     put("status", statusText)
-                    put("voltage", voltage)
+                    put("voltage", voltage) // Now sysfs-based or 1000mV
                     put("current_now", currentNow)
                     put("temp", temp)
                     put("charger_voltage", chargerVoltage)
