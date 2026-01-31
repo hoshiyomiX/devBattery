@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import org.json.JSONObject
 import java.io.File
 
 class MainActivity : AppCompatActivity() {
@@ -29,15 +30,15 @@ class MainActivity : AppCompatActivity() {
         // Injeksi JavaScript interface
         webView.addJavascriptInterface(object {
             @android.webkit.JavascriptInterface
-            fun getBatteryInfo(): String {
-                return getBatteryStatus()
+            fun getBatteryData(): String {
+                return getBatteryStatusJSON()
             }
 
             @android.webkit.JavascriptInterface
             fun getDebugInfo(): String {
                 return getDeviceDebugInfo()
             }
-        }, "AndroidBridge")
+        }, "Android")
 
         webView.loadUrl("file:///android_asset/index.html")
 
@@ -47,33 +48,54 @@ class MainActivity : AppCompatActivity() {
     private fun setupBatteryBroadcast() {
         batteryReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                webView.evaluateJavascript("if(typeof updateBatteryUI === 'function') updateBatteryUI();", null)
+                webView.evaluateJavascript("if(typeof updateBattery === 'function') updateBattery();", null)
             }
         }
         registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
     }
 
-    private fun getBatteryStatus(): String {
-        val batteryStatus = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-        
-        // Baca level baterai (0-100)
-        val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
-        val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
-        val batteryPct = if (level >= 0 && scale > 0) (level * 100 / scale.toFloat()).toInt() else 0
+    private fun getBatteryStatusJSON(): String {
+        return try {
+            val batteryStatus = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            
+            // Baca level baterai (0-100)
+            val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+            val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+            val batteryPct = if (level >= 0 && scale > 0) (level * 100 / scale.toFloat()).toInt() else 0
 
-        // Baca tegangan dari sysfs (fallback ke 1000 mV jika gagal)
-        val voltage = readVoltageFromSysfs()
+            // Baca tegangan dari sysfs (fallback ke 1000 mV jika gagal)
+            val voltage = readVoltageFromSysfs()
 
-        // Status charging
-        val status = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
-        val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || 
-                        status == BatteryManager.BATTERY_STATUS_FULL
+            // Status charging
+            val status = batteryStatus?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+            val statusText = when (status) {
+                BatteryManager.BATTERY_STATUS_CHARGING -> "Charging"
+                BatteryManager.BATTERY_STATUS_DISCHARGING -> "Discharging"
+                BatteryManager.BATTERY_STATUS_FULL -> "Full"
+                BatteryManager.BATTERY_STATUS_NOT_CHARGING -> "Not Charging"
+                else -> "Unknown"
+            }
 
-        // Temperatur (dalam 0.1°C, konversi ke °C)
-        val temp = batteryStatus?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
-        val tempCelsius = temp / 10.0
+            // Arus (microamps ke milliamps)
+            val currentNow = batteryStatus?.getIntExtra(BatteryManager.EXTRA_CURRENT_NOW, 0) ?: 0
 
-        return "$batteryPct|$voltage|${if (isCharging) 1 else 0}|$tempCelsius"
+            // Temperatur (dalam 0.1°C)
+            val temp = batteryStatus?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) ?: 0
+
+            // Build JSON
+            val json = JSONObject()
+            json.put("capacity", batteryPct)
+            json.put("voltage", voltage)  // dalam mV
+            json.put("current_now", currentNow)  // dalam µA
+            json.put("temp", temp)  // dalam 0.1°C
+            json.put("status", statusText)
+            
+            json.toString()
+        } catch (e: Exception) {
+            JSONObject().apply {
+                put("error", e.message ?: "Unknown error")
+            }.toString()
+        }
     }
 
     private fun readVoltageFromSysfs(): Int {
