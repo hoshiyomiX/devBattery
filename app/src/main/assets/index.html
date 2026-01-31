@@ -835,10 +835,17 @@
                 
                 const capacity = parseInt(data.capacity) || 0;
                 const status = data.status || lastStatus || "Unknown";
-                const voltage = formatNumber((parseInt(data.voltage) || 0) / 1000, 2);
+                
+                // VOLTAGE: Backend now sends mV (already converted from sysfs uV, or fallback 1000mV)
+                // Just divide by 1000 to get volts for display
+                const voltageRaw = parseInt(data.voltage) || 1000; // Fallback to 1V if missing
+                const voltage = formatNumber(voltageRaw / 1000, 2);
+                
                 const current = Math.floor((parseInt(data.current_now) || 0) / 1000);
                 const temperature = formatNumber((parseInt(data.temp) || 0) / 10, 1);
-                const power = formatPower(Math.abs(((parseInt(data.voltage) || 0) * (parseInt(data.current_now) || 0)) / 1000000000));
+                
+                // Power calc: backend voltage (mV) * current (uA) / 1,000,000 = milliwatts, then /1000 = watts
+                const power = formatPower(Math.abs((voltageRaw * (parseInt(data.current_now) || 0)) / 1000000000));
                 
                 if (status !== "Unknown") lastStatus = status;
                 
