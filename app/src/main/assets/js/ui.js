@@ -18,7 +18,6 @@ class UIManager {
             currentValue: document.getElementById('current-value'),
             powerValue: document.getElementById('power-value'),
             tempValue: document.getElementById('temp-value'),
-            errorToast: document.getElementById('error-toast'),
             debugCard: document.getElementById('debug-card'),
             debugOutput: document.getElementById('debug-output')
         };
@@ -28,7 +27,7 @@ class UIManager {
     
     update(data) {
         if (data.error) {
-            this.showError(data.error);
+            console.error('[UI] Error:', data.error);
             return;
         }
         
@@ -39,8 +38,6 @@ class UIManager {
         this.animateValue('currentValue', data.currentMA);
         this.animateValue('powerValue', data.powerW.toFixed(2));
         this.animateValue('tempValue', data.temperatureC.toFixed(1));
-        
-        this.hideError();
     }
     
     animateValue(elementKey, value) {
@@ -100,21 +97,6 @@ class UIManager {
         console.log('[UI] Theme:', theme);
     }
     
-    showError(message) {
-        const toast = this.elements.errorToast;
-        if (!toast) return;
-        
-        toast.textContent = message;
-        toast.classList.add('show');
-        
-        setTimeout(() => this.hideError(), 3000);
-    }
-    
-    hideError() {
-        const toast = this.elements.errorToast;
-        if (toast) toast.classList.remove('show');
-    }
-    
     showDebug() {
         const card = this.elements.debugCard;
         const output = this.elements.debugOutput;
@@ -148,9 +130,9 @@ class UIManager {
         
         try {
             document.execCommand('copy');
-            this.showError('✅ Copied!');
+            console.log('[UI] Copied to clipboard');
         } catch (error) {
-            this.showError('❌ Failed to copy');
+            console.error('[UI] Failed to copy:', error);
         }
         
         document.body.removeChild(textarea);
