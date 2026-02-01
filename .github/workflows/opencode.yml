@@ -31,6 +31,6 @@ jobs:
           # Kalau Z.ai GLM pakai endpoint Anthropic-compatible, tambah ini juga:
           # ANTHROPIC_API_KEY: ${{ secrets.ZAI_API_KEY }}
         with:
-          model: opencode/glm-4.7                                    # atau zhipuai/glm-4.7 / zai/glm-4.7 kalau prefix dibutuhkan
+          model: opencode/glm-4.7-free                                    # atau zhipuai/glm-4.7 / zai/glm-4.7 kalau prefix dibutuhkan
           use_github_token: true                            # Aktifkan fallback ke runner token
           agent: default                                    # optional
