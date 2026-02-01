@@ -1,4 +1,4 @@
-name: opencode - build
+name: opencode
 
 permissions:
   id-token: write
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 5
+          fetch-depth: 20
           persist-credentials: false
 
       - name: Configure Git identity
