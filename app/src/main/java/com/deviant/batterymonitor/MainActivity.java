@@ -10,6 +10,7 @@ import android.os.Build;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
 import android.content.res.Configuration;
 import android.widget.Toast;
 import org.json.JSONObject;
@@ -470,53 +471,17 @@ public class MainActivity extends Activity {
                 }
                 info.append("\n");
                 
-                info.append("--- BUILD INFO ---\n");
-                info.append("Build: ").append(BUILD_VERSION).append("\n");
-                info.append("Package: com.deviant.batterymonitor\n\n");
+                info.append("--- APK INFO ---\n");
+                String apkPath = getPackageInfo();
+                info.append("Path: ").append(apkPath).append("\n\n");
                 
-                info.append("--- SYSTEM INFO ---\n");
-                info.append("Device: ").append(Build.MANUFACTURER).append(" ").append(Build.MODEL).append("\n");
-                info.append("Android: ").append(Build.VERSION.RELEASE).append(" (SDK ").append(Build.VERSION.SDK_INT).append(")\n");
-                info.append("Board: ").append(Build.BOARD).append("\n");
-                info.append("Debug Log: ").append(DEBUG_FILE).append("\n\n");
+                info.append("--- SELINUX CONTEXT ---\n");
+                String selinuxContext = getSELinuxContext();
+                info.append("Domain: ").append(selinuxContext).append("\n\n");
                 
-                long uptime = (System.currentTimeMillis() - startTime) / 1000;
-                info.append("--- SESSION STATS ---\n");
-                info.append("Uptime: ").append(uptime).append(" seconds\n");
-                info.append("Updates: ").append(updateCount).append("\n\n");
-                
-                IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-                Intent batteryStatus = registerReceiver(null, ifilter);
-                
-                int capacity = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
-                int current = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-                int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-                int voltageMv = readVoltageFromSysfs();
-                int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
-                
-                info.append("--- CURRENT STATE ---\n");
-                info.append("✓ Capacity: ").append(capacity).append("%\n");
-                info.append("✓ Status: ").append(getStatusString(status)).append("\n");
-                info.append("✓ Voltage: ").append(voltageMv).append(" mV (").append(String.format(Locale.US, "%.2f", voltageMv/1000.0)).append(" V)\n");
-                info.append("✓ Current: ").append(current).append(" µA (").append(current/1000).append(" mA)\n");
-                info.append("✓ Temp: ").append(tempDeci).append(" dC (").append(String.format(Locale.US, "%.1f", tempDeci/10.0)).append(" °C)\n");
-                
-                if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
-                    String chargerVoltage = readChargerVoltageDirect();
-                    if (!chargerVoltage.equals("0")) {
-                        info.append("✓ Charger: ").append(chargerVoltage).append(" mV (SEPolicy)\n");
-                    } else {
-                        info.append("✗ Charger: Not available - likely blocked by AVC denial\n");
-                        info.append("   Check ").append(DEBUG_FILE).append(" for details\n");
-                    }
-                }
-                
-                if (!batteryHistory.isEmpty()) {
-                    info.append("\n--- BATTERY HISTORY (Last ").append(batteryHistory.size()).append(") ---\n");
-                    for (String entry : batteryHistory) {
-                        info.append(entry).append("\n");
-                    }
-                }
+                String apkLabel = getAPKLabel(apkPath);
+                info.append("--- APK LABEL ---\n");
+                info.append("Label: ").append(apkLabel).append("\n\n");
                 
             } catch (Exception e) {
                 info.append("❌ Error generating debug info: ").append(e.getMessage());
@@ -579,6 +544,44 @@ public class MainActivity extends Activity {
                 logDebug("Cannot read dmesg for AVC analysis: " + e.getMessage());
             }
             return denials;
+        }
+        
+        private String getPackageInfo() {
+            try {
+                return getApplicationInfo().sourceDir;
+            } catch (Exception e) {
+                return "unknown: " + e.getMessage();
+            }
+        }
+        
+        private String getSELinuxContext() {
+            try {
+                Process process = Runtime.getRuntime().exec(new String[]{"getenforce"});
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String status = reader.readLine();
+                reader.close();
+                process.destroy();
+                return status != null ? status.trim() : "unknown";
+            } catch (Exception e) {
+                return "unknown";
+            }
+        }
+        
+        private String getAPKLabel(String apkPath) {
+            try {
+                Process process = Runtime.getRuntime().exec(new String[]{"ls", "-Z", apkPath});
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line = reader.readLine();
+                reader.close();
+                process.destroy();
+                if (line != null && !line.isEmpty()) {
+                    String[] parts = line.split("\\s+");
+                    return parts.length > 0 ? parts[0] : "unknown";
+                }
+                return "unknown";
+            } catch (Exception e) {
+                return "unknown: " + e.getMessage();
+            }
         }
     }
     
