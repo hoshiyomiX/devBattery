@@ -28,7 +28,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}  # atau GLM_API_KEY kalau nama secret beda
-          MODEL: zai/glm-4.7                     # coba ini dulu, atau glm-4.7 kalau pakai Zen proxy
+          MODEL: glm-4.7                     # coba ini dulu, atau glm-4.7 kalau pakai Zen proxy
           # Optional: fallback ke GITHUB_TOKEN kalau OIDC masih bermasalah
           # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
