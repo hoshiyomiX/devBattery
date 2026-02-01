@@ -99,29 +99,61 @@ public class MainActivity extends Activity {
             logDebug("Initial Theme: " + (isDark ? "dark" : "light"));
             logDebug("");
             
+            checkSELinuxStatus();
+            logDebug("");
+            
             debugWriter.flush();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     
+    private void checkSELinuxStatus() {
+        try {
+            logDebug("--- SELINUX STATUS ---");
+            Process process = Runtime.getRuntime().exec("getenforce");
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String status = reader.readLine();
+            reader.close();
+            process.destroy();
+            
+            logDebug("Enforcing Mode: " + (status != null ? status : "unknown"));
+            
+            if ("Enforcing".equalsIgnoreCase(status)) {
+                logDebug("⚠️ SELinux is ENFORCING - AVC denials will block access");
+            } else if ("Permissive".equalsIgnoreCase(status)) {
+                logDebug("ℹ️  SELinux is PERMISSIVE - AVC denials logged but not enforced");
+            } else {
+                logDebug("ℹ️  SELinux is DISABLED");
+            }
+        } catch (Exception e) {
+            logDebug("Cannot determine SELinux status: " + e.getMessage());
+        }
+    }
+    
     private void checkAVCDenials() {
         new Thread(() -> {
             try {
-                logDebug("--- CHECKING AVC DENIALS ---");
+                logDebug("--- SELINUX AVC DENIAL ANALYSIS ---");
                 
-                Process process = Runtime.getRuntime().exec("logcat -d -b all -v time");
+                Process process = Runtime.getRuntime().exec("logcat -d -b all -v time *:S avc:V");
                 BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                 
                 String line;
                 int denialCount = 0;
-                List<String> recentDenials = new ArrayList<>();
+                List<String> batteryDenials = new ArrayList<>();
+                List<String> otherDenials = new ArrayList<>();
                 
-                while ((line = reader.readLine()) != null && denialCount < 5) {
+                while ((line = reader.readLine()) != null) {
                     if (line.contains("avc: denied") || line.contains("avc:  denied")) {
-                        if (line.contains("sysfs") || line.contains("battery") || line.contains("charger")) {
-                            recentDenials.add(line);
-                            denialCount++;
+                        denialCount++;
+                        if (line.contains("sysfs") || line.contains("battery") || line.contains("charger") || 
+                            line.contains("power_supply") || line.contains("devices/platform")) {
+                            batteryDenials.add(line);
+                        } else {
+                            if (otherDenials.size() < 3) {
+                                otherDenials.add(line);
+                            }
                         }
                     }
                 }
@@ -129,18 +161,35 @@ public class MainActivity extends Activity {
                 reader.close();
                 process.destroy();
                 
-                if (denialCount > 0) {
-                    logDebug("⚠️ Found " + denialCount + " AVC denial(s) related to battery/charger:");
-                    for (String denial : recentDenials) {
-                        logDebug(denial);
+                if (batteryDenials.size() > 0) {
+                    logDebug("❌ CRITICAL: " + batteryDenials.size() + " AVC denial(s) blocking battery/charger access");
+                    logDebug("   This prevents reading charger voltage from sysfs");
+                    logDebug("");
+                    logDebug("   Latest AVC denial(s):");
+                    for (String denial : batteryDenials) {
+                        logDebug("   " + denial);
+                    }
+                    logDebug("");
+                    logDebug("   FIX: Add SEPolicy rules for:");
+                    logDebug("   - Allow app to read /sys/class/power_supply/*");
+                    logDebug("   - Allow app to read /sys/devices/platform/charger/*");
+                } else if (otherDenials.size() > 0) {
+                    logDebug("⚠️  " + otherDenials.size() + " AVC denial(s) detected (not battery-related)");
+                    for (String denial : otherDenials) {
+                        logDebug("   " + denial);
                     }
                 } else {
-                    logDebug("✓ No recent AVC denials found for battery/charger access");
+                    logDebug("✓ No AVC denials blocking battery/charger access");
+                }
+                
+                if (denialCount == 0) {
+                    logDebug("ℹ️  No AVC denials found in logcat");
                 }
                 logDebug("");
                 
             } catch (Exception e) {
-                logDebug("Cannot read logcat (expected on user builds): " + e.getMessage());
+                logDebug("Cannot read logcat for AVC analysis: " + e.getMessage());
+                logDebug("   (Expected on production/user builds without logcat access)");
                 logDebug("");
             }
         }).start();
@@ -270,10 +319,11 @@ public class MainActivity extends Activity {
                 } catch (FileNotFoundException e) {
                     // Path doesn't exist
                 } catch (SecurityException e) {
-                    logDebug("[" + getTimeStamp() + "] ⚠️ SELinux denied: " + path);
-                    logDebug("  Reason: " + e.getMessage());
+                    logDebug("[" + getTimeStamp() + "] ❌ AVC DENIAL: Cannot read " + path);
+                    logDebug("   This is a SELinux policy violation blocking sysfs access");
+                    logDebug("   FIX: Add SEPolicy allow rule for this path");
                 } catch (Exception e) {
-                    logDebug("[" + getTimeStamp() + "] Failed to read " + path + ": " + e.getMessage());
+                    logDebug("[" + getTimeStamp() + "] Error reading " + path + ": " + e.getMessage());
                 }
             }
             return "0";
@@ -294,7 +344,8 @@ public class MainActivity extends Activity {
                     }
                 }
             } catch (SecurityException e) {
-                logDebug("[" + getTimeStamp() + "] ⚠️ SELinux denied: /sys/devices/platform/charger/ADC_Charger_Voltage");
+                logDebug("[" + getTimeStamp() + "] ❌ AVC DENIAL: SELinux blocking /sys/devices/platform/charger/ADC_Charger_Voltage");
+                logDebug("   Required: allow app sysfs_file:read");
             } catch (Exception e) {
                 logDebug("[" + getTimeStamp() + "] Failed to read voltage: " + e.getMessage());
             }
@@ -322,6 +373,20 @@ public class MainActivity extends Activity {
             
             try {
                 info.append("========== DEVBATTERY DEBUG INFO ==========\n\n");
+                
+                info.append("--- SELINUX / AVC STATUS ---\n");
+                String selinuxStatus = getSELinuxStatus();
+                info.append("SELinux Mode: ").append(selinuxStatus).append("\n");
+                
+                if ("Enforcing".equals(selinuxStatus)) {
+                    info.append("⚠️  AVC denials will BLOCK sysfs access\n");
+                    info.append("   Check debug log for specific denial details\n");
+                } else if ("Permissive".equals(selinuxStatus)) {
+                    info.append("ℹ️  AVC denials logged but NOT enforced\n");
+                } else {
+                    info.append("✓ SELinux disabled - no AVC blocking\n");
+                }
+                info.append("\n");
                 
                 info.append("--- BUILD INFO ---\n");
                 info.append("Build: ").append(BUILD_VERSION).append("\n");
@@ -359,7 +424,8 @@ public class MainActivity extends Activity {
                     if (!chargerVoltage.equals("0")) {
                         info.append("✓ Charger: ").append(chargerVoltage).append(" mV (SEPolicy)\n");
                     } else {
-                        info.append("✗ Charger: Not available (check SEPolicy)\n");
+                        info.append("✗ Charger: Not available - likely blocked by AVC denial\n");
+                        info.append("   Check ").append(DEBUG_FILE).append(" for details\n");
                     }
                 }
                 
@@ -375,6 +441,19 @@ public class MainActivity extends Activity {
             }
             
             return info.toString();
+        }
+        
+        private String getSELinuxStatus() {
+            try {
+                Process process = Runtime.getRuntime().exec("getenforce");
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String status = reader.readLine();
+                reader.close();
+                process.destroy();
+                return status != null ? status.trim() : "unknown";
+            } catch (Exception e) {
+                return "unknown";
+            }
         }
     }
     
