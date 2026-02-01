@@ -1,5 +1,12 @@
 name: opencode
 
+# Permissions level workflow (wajib untuk OIDC & GitHub API actions)
+permissions:
+  id-token: write          # FIX utama: izinkan fetch OIDC token
+  contents: write          # Untuk checkout, create branch, commit
+  issues: write            # Untuk comment di issues
+  pull-requests: write     # Untuk comment di PR & open PR baru
+
 on:
   issue_comment:
     types: [created]
@@ -20,9 +27,11 @@ jobs:
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-          MODEL: zai/glm-4.7  # <-- GANTI KE INI DULU
-        # Kalau butuh agent spesifik:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}  # atau GLM_API_KEY kalau nama secret beda
+          MODEL: zai/glm-4.7                     # coba ini dulu, atau glm-4.7 kalau pakai Zen proxy
+          # Optional: fallback ke GITHUB_TOKEN kalau OIDC masih bermasalah
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: zai/glm-4.7  # optional, kalau env tidak cukup
-          agent: default  # atau plan, fix, dll
+          # Optional kalau butuh override
+          use_github_token: false  # default false kalau pakai OIDC
+          # agent: default           # atau 'plan', 'fix', dll kalau mau spesifik
