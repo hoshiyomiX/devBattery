@@ -81,33 +81,6 @@
 }
 
 /* ===================================
-   Error Toast
-   =================================== */
-
-.error-toast {
-    position: fixed;
-    bottom: var(--space-xl);
-    left: 50%;
-    transform: translateX(-50%) translateY(100px);
-    background-color: var(--error-container);
-    color: var(--error);
-    padding: var(--space-md) var(--space-xl);
-    border-radius: var(--radius-xl);
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    opacity: 0;
-    transition: all var(--transition-normal) var(--easing-standard);
-    z-index: 100;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.error-toast.show {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-}
-
-/* ===================================
    Debug Panel
    =================================== */
 

@@ -298,6 +298,7 @@
             opacity: 0.9;
             font-weight: 600;
             letter-spacing: 0.5px;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
         }
         
         .tile-large .tile-value {
@@ -305,6 +306,7 @@
             color: var(--md-sys-color-on-primary-container);
             font-weight: 300;
             letter-spacing: -3px;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
         }
         
         .tile-large .tile-unit {
@@ -766,18 +768,41 @@
         }
         
         function getBatteryColor(percentage) {
-            let r, g, b;
-            if (percentage < 50) {
-                const ratio = percentage / 50;
-                r = 244;
-                g = Math.floor(67 + (244 - 67) * ratio);
-                b = 54;
-            } else {
-                const ratio = (percentage - 50) / 50;
-                r = Math.floor(244 - (244 - 76) * ratio);
-                g = Math.floor(244 - (244 - 175) * ratio);
-                b = Math.floor(54 + (80 - 54) * ratio);
+            const stages = [
+                { percent: 0, color: [244, 67, 54] },
+                { percent: 15, color: [244, 67, 54] },
+                { percent: 15, color: [255, 152, 0] },
+                { percent: 30, color: [255, 152, 0] },
+                { percent: 30, color: [156, 39, 176] },
+                { percent: 60, color: [156, 39, 176] },
+                { percent: 60, color: [139, 195, 74] },
+                { percent: 85, color: [139, 195, 74] },
+                { percent: 85, color: [76, 175, 80] },
+                { percent: 100, color: [76, 175, 80] }
+            ];
+            
+            let lowerStage = stages[0];
+            let upperStage = stages[stages.length - 1];
+            
+            for (let i = 0; i < stages.length - 1; i++) {
+                if (percentage >= stages[i].percent && percentage <= stages[i + 1].percent) {
+                    lowerStage = stages[i];
+                    upperStage = stages[i + 1];
+                    break;
+                }
             }
+            
+            const range = upperStage.percent - lowerStage.percent;
+            let ratio = 0;
+            
+            if (range > 0) {
+                ratio = (percentage - lowerStage.percent) / range;
+            }
+            
+            const r = Math.floor(lowerStage.color[0] + (upperStage.color[0] - lowerStage.color[0]) * ratio);
+            const g = Math.floor(lowerStage.color[1] + (upperStage.color[1] - lowerStage.color[1]) * ratio);
+            const b = Math.floor(lowerStage.color[2] + (upperStage.color[2] - lowerStage.color[2]) * ratio);
+            
             return `rgba(${r}, ${g}, ${b}, 0.9)`;
         }
         
