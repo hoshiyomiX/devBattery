@@ -12,6 +12,44 @@
     let fluidSim = null;
     let useWebGL = true;
     let bubbleSpawnInterval = null;
+
+    /**
+     * Compute how many bubbles to spawn based on current_now (mA)
+     * and how many bubbles are currently on screen (currently).
+     * Rules:
+     * - 1-1000 mA: spawnCount = max(0, currently - current_now)
+     * - 1000-2000 mA: spawnCount = currently
+     * - >2000 mA: spawnCount = currently + current_now
+     */
+    function computeBubbleSpawn(current_now_ma, currently) {
+        if (!current_now_ma || current_now_ma <= 0) return 0;
+        if (current_now_ma <= 1000) {
+            return Math.max(0, currently - current_now_ma);
+        }
+        if (current_now_ma <= 2000) {
+            return currently;
+        }
+        // current_now_ma > 2000
+        return currently + current_now_ma;
+    }
+
+    // Helper to spawn a single bubble with existing visuals
+    function spawnBubble(container) {
+        if (container.children.length > 20) return;  // cap
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        const size = Math.random() * 12 + 6;  // 6-18px
+        const left = Math.random() * 80 + 10;
+        const duration = Math.random() * 2 + 2.5; // 2.5-4.5s
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.left = left + '%';
+        bubble.style.animationDuration = duration + 's';
+        container.appendChild(bubble);
+        setTimeout(() => {
+            if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
+        }, duration * 1000);
+    }
     
     // ===================================
     // Initialization
@@ -138,25 +176,13 @@
     }
     
     function spawnRandomBubble(container) {
-        if (container.children.length > 20) return;  // More bubbles allowed
-        
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        
-        const size = Math.random() * 12 + 6;  // 6-18px (larger)
-        const left = Math.random() * 80 + 10;
-        const duration = Math.random() * 2 + 2.5;  // 2.5-4.5s (faster)
-        
-        bubble.style.width = size + 'px';
-        bubble.style.height = size + 'px';
-        bubble.style.left = left + '%';
-        bubble.style.animationDuration = duration + 's';
-        
-        container.appendChild(bubble);
-        
-        setTimeout(() => {
-            if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-        }, duration * 1000);
+        // Spawn multiple bubbles based on current and on-screen count
+        if (container.children.length > 20) return;  // cap
+        const currentMA = (window.batteryManager && window.batteryManager.lastData && window.batteryManager.lastData.currentMA) ? window.batteryManager.lastData.currentMA : 0;
+        const toSpawn = Math.max(0, computeBubbleSpawn(currentMA, container.children.length));
+        for (let i = 0; i < toSpawn; i++) {
+            spawnBubble(container);
+        }
     }
     
     // ===================================
