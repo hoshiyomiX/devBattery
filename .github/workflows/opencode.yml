@@ -1,4 +1,4 @@
-name: OpenCode
+name: opencode
 
 on:
   issue_comment:
@@ -9,13 +9,20 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.body, '/opencode') || contains(github.event.comment.body, '/oc')
+    if: contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode')
     steps:
-      - uses: actions/checkout@v4
-      - name: Run OpenCode
-        uses: anomalyco/opencode/github@latest  # atau versi spesifik
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          # Tambah env untuk Z.ai kalau mau custom
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest
+        env:
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-          MODEL: glm-4.7  # atau model lain
+          MODEL: zai/glm-4.7  # <-- GANTI KE INI DULU
+        # Kalau butuh agent spesifik:
+        with:
+          model: zai/glm-4.7  # optional, kalau env tidak cukup
+          agent: default  # atau plan, fix, dll
