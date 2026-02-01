@@ -30,15 +30,15 @@ jobs:
 
       - name: Setup Git HTTPS credential with GITHUB_TOKEN
         run: |
-          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}  # optional dari Zen
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/glm-4.7-free  # Zen free GLM
+          model: opencode/glm-4.7-free
           use_github_token: true
           agent: default
