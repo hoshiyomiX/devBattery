@@ -27,17 +27,18 @@ jobs:
         run: |
           git config --global user.name "OpenCode Agent"
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
-        # Alternatif lebih "GitHub-native":
-        # git config --global user.name "${{ github.actor }}"
-        # git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      - name: Setup Git HTTPS credential with GITHUB_TOKEN
+        run: |
+          git config --global url."https://${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}  # optional, dari Zen signup
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}  # optional dari Zen
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/glm-4.7-free  # atau opencode/glm-4.7-free (Zen free GLM)
+          model: opencode/glm-4.7-free  # Zen free GLM
           use_github_token: true
           agent: default
