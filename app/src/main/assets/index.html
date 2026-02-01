@@ -597,6 +597,7 @@
         const DROPLET_DURATION = 1100;
         const SPLASH_TIMING = 1045;
         const LANDING_OFFSET = 15;
+        const containerHeight = 200;
         
         function applyTheme(theme) {
             currentTheme = theme;
@@ -665,7 +666,7 @@
             const left = 15 + Math.random() * 70;
             const drift = (Math.random() - 0.5) * 40;
             const duration = 2.5 + Math.random() * 1.5;
-            const riseDistance = (currentCapacity * 2) - 14;
+            const riseDistance = (currentCapacity * (containerHeight / 100)) - 14;
             
             bubble.style.width = size + 'px';
             bubble.style.height = size + 'px';
