@@ -198,7 +198,7 @@ public class MainActivity extends Activity {
                 int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
                 String statusStr = getStatusString(status);
                 int currentUa = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-                int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+                int voltageMv = readVoltageFromSysfs();
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
                 
                 String chargerVoltage = "0";
@@ -279,6 +279,39 @@ public class MainActivity extends Activity {
             return "0";
         }
         
+        private int readVoltageFromSysfs() {
+            String[] possiblePaths = {
+                "/sys/devices/platform/charger/ADC_Charger_Voltage",
+                "/sys/class/power_supply/battery/voltage_now",
+                "/sys/class/power_supply/usb/voltage_now",
+                "/sys/class/power_supply/ac/voltage_now"
+            };
+            
+            for (String path : possiblePaths) {
+                try {
+                    File file = new File(path);
+                    if (file.exists() && file.canRead()) {
+                        BufferedReader reader = new BufferedReader(new FileReader(file));
+                        String value = reader.readLine();
+                        reader.close();
+                        
+                        if (value != null && !value.isEmpty()) {
+                            value = value.trim();
+                            long microvolts = Long.parseLong(value);
+                            return (int)(microvolts / 1000);
+                        }
+                    }
+                } catch (FileNotFoundException e) {
+                    // Path doesn't exist, try next
+                } catch (SecurityException e) {
+                    logDebug("[" + getTimeStamp() + "] ⚠️ SELinux denied: " + path);
+                } catch (Exception e) {
+                    logDebug("[" + getTimeStamp() + "] Failed to read " + path + ": " + e.getMessage());
+                }
+            }
+            return 1000;
+        }
+        
         private String getStatusString(int status) {
             switch (status) {
                 case BatteryManager.BATTERY_STATUS_CHARGING:
@@ -322,7 +355,7 @@ public class MainActivity extends Activity {
                 int capacity = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
                 int current = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
                 int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-                int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+                int voltageMv = readVoltageFromSysfs();
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
                 
                 info.append("--- CURRENT STATE ---\n");
