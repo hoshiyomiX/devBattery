@@ -1,0 +1,21 @@
+name: OpenCode
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  opencode:
+    runs-on: ubuntu-latest
+    if: contains(github.event.comment.body, '/opencode') || contains(github.event.comment.body, '/oc')
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run OpenCode
+        uses: anomalyco/opencode/github@latest  # atau versi spesifik
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Tambah env untuk Z.ai kalau mau custom
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+          MODEL: glm-4.7  # atau model lain
