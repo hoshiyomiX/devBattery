@@ -280,34 +280,23 @@ public class MainActivity extends Activity {
         }
         
         private int readVoltageFromSysfs() {
-            String[] possiblePaths = {
-                "/sys/devices/platform/charger/ADC_Charger_Voltage",
-                "/sys/class/power_supply/battery/voltage_now",
-                "/sys/class/power_supply/usb/voltage_now",
-                "/sys/class/power_supply/ac/voltage_now"
-            };
-            
-            for (String path : possiblePaths) {
-                try {
-                    File file = new File(path);
-                    if (file.exists() && file.canRead()) {
-                        BufferedReader reader = new BufferedReader(new FileReader(file));
-                        String value = reader.readLine();
-                        reader.close();
-                        
-                        if (value != null && !value.isEmpty()) {
-                            value = value.trim();
-                            long microvolts = Long.parseLong(value);
-                            return (int)(microvolts / 1000);
-                        }
+            try {
+                File file = new File("/sys/devices/platform/charger/ADC_Charger_Voltage");
+                if (file.exists() && file.canRead()) {
+                    BufferedReader reader = new BufferedReader(new FileReader(file));
+                    String value = reader.readLine();
+                    reader.close();
+
+                    if (value != null && !value.isEmpty()) {
+                        value = value.trim();
+                        long microvolts = Long.parseLong(value);
+                        return (int)(microvolts / 1000);
                     }
-                } catch (FileNotFoundException e) {
-                    // Path doesn't exist, try next
-                } catch (SecurityException e) {
-                    logDebug("[" + getTimeStamp() + "] ⚠️ SELinux denied: " + path);
-                } catch (Exception e) {
-                    logDebug("[" + getTimeStamp() + "] Failed to read " + path + ": " + e.getMessage());
                 }
+            } catch (SecurityException e) {
+                logDebug("[" + getTimeStamp() + "] ⚠️ SELinux denied: /sys/devices/platform/charger/ADC_Charger_Voltage");
+            } catch (Exception e) {
+                logDebug("[" + getTimeStamp() + "] Failed to read voltage: " + e.getMessage());
             }
             return 1000;
         }
