@@ -79,13 +79,6 @@ public class MainActivity extends Activity {
             File debugFile = new File(DEBUG_FILE);
             debugWriter = new FileWriter(debugFile, false);
             
-            logDebug("========== DEVBATTERY MONITOR DEBUG LOG ==========");
-            logDebug("");
-            logDebug("--- BUILD INFO ---");
-            logDebug("Build: " + BUILD_VERSION);
-            logDebug("Package: com.deviant.batterymonitor");
-            logDebug("");
-            logDebug("--- SESSION INFO ---");
             logDebug("Timestamp: " + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date()));
             logDebug("Device: " + Build.MANUFACTURER + " " + Build.MODEL);
             logDebug("Android: " + Build.VERSION.RELEASE + " (SDK " + Build.VERSION.SDK_INT + ")");
@@ -131,19 +124,19 @@ public class MainActivity extends Activity {
     private void checkAVCDenials() {
         new Thread(() -> {
             try {
-                logDebug("--- SELINUX AVC DENIAL ANALYSIS ---");
+                logDebug("--- LOGCAT AVC DENIALS ---");
                 
                 Process process = Runtime.getRuntime().exec("logcat -d -b all -v time *:S avc:V");
                 BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                 
                 String line;
-                int denialCount = 0;
+                int logcatDenialCount = 0;
                 List<String> batteryDenials = new ArrayList<>();
                 List<String> otherDenials = new ArrayList<>();
                 
                 while ((line = reader.readLine()) != null) {
                     if (line.contains("avc: denied") || line.contains("avc:  denied")) {
-                        denialCount++;
+                        logcatDenialCount++;
                         if (line.contains("sysfs") || line.contains("battery") || line.contains("charger") || 
                             line.contains("power_supply") || line.contains("devices/platform")) {
                             batteryDenials.add(line);
@@ -179,13 +172,66 @@ public class MainActivity extends Activity {
                     logDebug("✓ No AVC denials blocking battery/charger access");
                 }
                 
-                if (denialCount == 0) {
+                if (logcatDenialCount == 0) {
                     logDebug("ℹ️  No AVC denials found in logcat");
                 }
                 logDebug("");
                 
+                logDebug("--- DMESG AVC DENIALS ---");
+                
+                Process dmesgProcess = Runtime.getRuntime().exec("dmesg");
+                BufferedReader dmesgReader = new BufferedReader(new InputStreamReader(dmesgProcess.getInputStream()));
+                
+                int dmesgDenialCount = 0;
+                List<String> dmesgBatteryDenials = new ArrayList<>();
+                
+                while ((line = dmesgReader.readLine()) != null) {
+                    if (line.contains("avc: denied") || line.contains("avc:  denied") || 
+                        (line.contains("SELinux") && (line.contains("denied") || line.contains("denial")))) {
+                        dmesgDenialCount++;
+                        if (line.contains("sysfs") || line.contains("battery") || line.contains("charger") || 
+                            line.contains("power_supply") || line.contains("devices/platform")) {
+                            dmesgBatteryDenials.add(line);
+                        }
+                    }
+                }
+                
+                dmesgReader.close();
+                dmesgProcess.destroy();
+                
+                if (dmesgBatteryDenials.size() > 0) {
+                    logDebug("❌ CRITICAL: " + dmesgBatteryDenials.size() + " AVC denial(s) in dmesg blocking battery/charger access");
+                    logDebug("");
+                    logDebug("   Latest dmesg AVC denial(s):");
+                    for (String denial : dmesgBatteryDenials) {
+                        logDebug("   " + denial);
+                    }
+                } else if (dmesgDenialCount > 0) {
+                    logDebug("⚠️  " + dmesgDenialCount + " AVC denial(s) detected in dmesg (not battery-related)");
+                } else {
+                    logDebug("✓ No AVC denials in dmesg");
+                }
+                logDebug("");
+                
+                logDebug("--- SYSFS ACCESS TEST ---");
+                String[] sysfsPaths = {
+                    "/sys/class/power_supply/",
+                    "/sys/devices/platform/charger/",
+                    "/sys/class/power_supply/battery/"
+                };
+                
+                for (String path : sysfsPaths) {
+                    File dir = new File(path);
+                    if (dir.exists() && dir.canRead()) {
+                        logDebug("✓ " + path + " - Accessible");
+                    } else {
+                        logDebug("✗ " + path + " - Blocked (AVC denial)");
+                    }
+                }
+                logDebug("");
+                
             } catch (Exception e) {
-                logDebug("Cannot read logcat for AVC analysis: " + e.getMessage());
+                logDebug("Cannot read logcat/dmesg for AVC analysis: " + e.getMessage());
                 logDebug("   (Expected on production/user builds without logcat access)");
                 logDebug("");
             }
@@ -369,8 +415,6 @@ public class MainActivity extends Activity {
             StringBuilder info = new StringBuilder();
             
             try {
-                info.append("========== DEVBATTERY DEBUG INFO ==========\n\n");
-                
                 info.append("--- SELINUX / AVC STATUS ---\n");
                 String selinuxStatus = getSELinuxStatus();
                 info.append("SELinux Mode: ").append(selinuxStatus).append("\n");
@@ -382,6 +426,47 @@ public class MainActivity extends Activity {
                     info.append("ℹ️  AVC denials logged but NOT enforced\n");
                 } else {
                     info.append("✓ SELinux disabled - no AVC blocking\n");
+                }
+                info.append("\n");
+                
+                info.append("--- LOGCAT AVC DENIALS ---\n");
+                List<String> logcatDenials = getLogcatAVCDenials();
+                if (!logcatDenials.isEmpty()) {
+                    info.append("Found ").append(logcatDenials.size()).append(" AVC denial(s) in logcat:\n");
+                    for (String denial : logcatDenials) {
+                        info.append("  ").append(denial).append("\n");
+                    }
+                } else {
+                    info.append("✓ No AVC denials in logcat\n");
+                }
+                info.append("\n");
+                
+                info.append("--- DMESG AVC DENIALS ---\n");
+                List<String> dmesgDenials = getDmesgAVCDenials();
+                if (!dmesgDenials.isEmpty()) {
+                    info.append("Found ").append(dmesgDenials.size()).append(" AVC denial(s) in dmesg:\n");
+                    for (String denial : dmesgDenials) {
+                        info.append("  ").append(denial).append("\n");
+                    }
+                } else {
+                    info.append("✓ No AVC denials in dmesg\n");
+                }
+                info.append("\n");
+                
+                info.append("--- SYSFS ACCESS CHECK ---\n");
+                String[] sysfsPaths = {
+                    "/sys/class/power_supply/",
+                    "/sys/devices/platform/charger/",
+                    "/sys/class/power_supply/battery/"
+                };
+                
+                for (String path : sysfsPaths) {
+                    File dir = new File(path);
+                    if (dir.exists() && dir.canRead()) {
+                        info.append("✓ ").append(path).append(" - Accessible\n");
+                    } else {
+                        info.append("✗ ").append(path).append(" - Blocked (AVC denial)\n");
+                    }
                 }
                 info.append("\n");
                 
@@ -451,6 +536,49 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 return "unknown";
             }
+        }
+        
+        private List<String> getLogcatAVCDenials() {
+            List<String> denials = new ArrayList<>();
+            try {
+                Process process = Runtime.getRuntime().exec("logcat -d -b all -v time *:S avc:V");
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains("avc: denied") || line.contains("avc:  denied")) {
+                        denials.add(line);
+                    }
+                }
+                
+                reader.close();
+                process.destroy();
+            } catch (Exception e) {
+                logDebug("Cannot read logcat for AVC analysis: " + e.getMessage());
+            }
+            return denials;
+        }
+        
+        private List<String> getDmesgAVCDenials() {
+            List<String> denials = new ArrayList<>();
+            try {
+                Process process = Runtime.getRuntime().exec("dmesg");
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains("avc: denied") || line.contains("avc:  denied") || 
+                        line.contains("SELinux") && (line.contains("denied") || line.contains("denial"))) {
+                        denials.add(line);
+                    }
+                }
+                
+                reader.close();
+                process.destroy();
+            } catch (Exception e) {
+                logDebug("Cannot read dmesg for AVC analysis: " + e.getMessage());
+            }
+            return denials;
         }
     }
     
