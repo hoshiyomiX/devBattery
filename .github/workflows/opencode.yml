@@ -23,14 +23,21 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "OpenCode Agent"
+          git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
+        # Alternatif lebih "GitHub-native":
+        # git config --global user.name "${{ github.actor }}"
+        # git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}          # API key Z.ai
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}         # <-- FIX KUNCI: Set GITHUB_TOKEN dari secrets
-          # Kalau Z.ai GLM pakai endpoint Anthropic-compatible, tambah ini juga:
-          # ANTHROPIC_API_KEY: ${{ secrets.ZAI_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}  # optional, dari Zen signup
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          model: opencode/glm-4.7-free                                    # atau zhipuai/glm-4.7 / zai/glm-4.7 kalau prefix dibutuhkan
-          use_github_token: true                            # Aktifkan fallback ke runner token
-          agent: default                                    # optional
+          model: opencode/glm-4.7-free  # atau opencode/glm-4.7-free (Zen free GLM)
+          use_github_token: true
+          agent: default
