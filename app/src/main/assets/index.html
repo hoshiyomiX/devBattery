@@ -379,6 +379,7 @@
             z-index: 10;
             color: var(--md-sys-color-on-primary-container);
             opacity: 0.9;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
         
         .action-buttons {
@@ -483,21 +484,7 @@
             word-break: break-all;
         }
         
-        .error-banner {
-            margin-top: 20px;
-            padding: 18px 24px;
-            background: var(--md-sys-color-error-container);
-            border-radius: 20px;
-            border-left: 5px solid var(--md-sys-color-error);
-            font-size: 14px;
-            color: var(--md-sys-color-on-error);
-            display: none;
-            align-items: center;
-            gap: 14px;
-            animation: slideInRight 0.5s var(--md-motion-emphasized);
-        }
-        
-        .error-banner.show { display: flex; }
+
         
         ::-webkit-scrollbar { width: 10px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -522,10 +509,6 @@
                     </svg>
                     <span>t.me/hoshiyomi_id</span>
                 </a>
-            </div>
-            <div class="root-badge" id="root-badge" onclick="showDebug()">
-                <span class="root-icon" id="root-icon">🔒</span>
-                <span id="root-text">SEPolicy</span>
             </div>
         </header>
         
@@ -587,11 +570,6 @@
                 <span class="icon">📋</span>
                 <span>Copy to Clipboard</span>
             </button>
-        </div>
-        
-        <div class="error-banner" id="error-banner">
-            <span class="icon">⚠️</span>
-            <span id="error-text"></span>
         </div>
         
         <div class="debug-card" id="debug-card">
@@ -829,7 +807,6 @@
             try {
                 const data = JSON.parse(Android.getBatteryData());
                 if (data.error) {
-                    showError('Error: ' + data.error);
                     return;
                 }
                 
@@ -863,22 +840,10 @@
                 
                 const isDraining = lastStatus.toLowerCase() === 'discharging' || lastStatus.toLowerCase() === 'not charging';
                 toggleDrainLeak(isDraining);
-                
-                if (capacity > 0) hideError();
             } catch (e) {
-                showError('Error: ' + e.message);
             }
         }
         
-        function showError(message) {
-            const banner = document.getElementById('error-banner');
-            document.getElementById('error-text').textContent = message;
-            banner.classList.add('show');
-        }
-        
-        function hideError() {
-            document.getElementById('error-banner').classList.remove('show');
-        }
         
         function showDebug() {
             try {
@@ -886,7 +851,6 @@
                 document.getElementById('debug-output').textContent = debugData;
                 document.getElementById('debug-card').classList.add('show');
             } catch (e) {
-                showError('Debug unavailable');
             }
         }
         
@@ -902,10 +866,7 @@
             
             try {
                 document.execCommand('copy');
-                showError('✅ Copied!');
-                setTimeout(hideError, 2500);
             } catch (e) {
-                showError('❌ Failed to copy');
             }
             
             document.body.removeChild(textarea);
