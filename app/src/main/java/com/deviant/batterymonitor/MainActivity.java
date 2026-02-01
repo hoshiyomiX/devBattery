@@ -37,9 +37,6 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         startTime = System.currentTimeMillis();
         
-        // SHOW BUILD MARKER - This proves APK is from renuked branch
-        Toast.makeText(this, "✓ " + BUILD_VERSION, Toast.LENGTH_LONG).show();
-        
         // Initialize BatteryManager
         batteryManager = (BatteryManager) getSystemService(Context.BATTERY_SERVICE);
         
