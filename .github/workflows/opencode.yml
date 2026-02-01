@@ -1,10 +1,10 @@
 name: opencode
 
 permissions:
-  id-token: write       # Untuk OIDC kalau perlu
-  contents: write       # Wajib untuk commit/branch
-  issues: write         # Untuk comment di issue
-  pull-requests: write  # Untuk comment/PR di PR
+  id-token: write
+  contents: write
+  issues: write
+  pull-requests: write
 
 on:
   issue_comment:
@@ -21,14 +21,16 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 1
-          persist-credentials: false  # Penting agar tidak conflict credential
+          persist-credentials: false
 
       - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-          # MODEL pindah ke with (seperti sebelumnya)
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}          # API key Z.ai
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}         # <-- FIX KUNCI: Set GITHUB_TOKEN dari secrets
+          # Kalau Z.ai GLM pakai endpoint Anthropic-compatible, tambah ini juga:
+          # ANTHROPIC_API_KEY: ${{ secrets.ZAI_API_KEY }}
         with:
-          model: zai/glm-4.7                  # atau zai/glm-4.7 kalau prefix dibutuhkan
-          use_github_token: true          # <-- FIX KUNCI: Pakai GITHUB_TOKEN runner, bukan app bot
-          agent: default                  # optional
+          model: zai/glm-4.7                                    # atau zhipuai/glm-4.7 / zai/glm-4.7 kalau prefix dibutuhkan
+          use_github_token: true                            # Aktifkan fallback ke runner token
+          agent: default                                    # optional
