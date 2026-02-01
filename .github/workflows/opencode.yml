@@ -15,7 +15,7 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.body, '/b') || contains(github.event.comment.body, '/build')
+    if: contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
