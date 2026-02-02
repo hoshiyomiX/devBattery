@@ -1,4 +1,4 @@
-name: AI Agent (Aider - Anti Loop)
+name: AI Agent (Aider - Clean)
 
 on:
   issue_comment:
@@ -40,7 +40,7 @@ jobs:
           git config --global user.name "AI Agent"
           git config --global user.email "ai-agent[bot]@users.noreply.github.com"
 
-      - name: Run Aider (Safe Mode)
+      - name: Run Aider
         env:
           OPENAI_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
           OPENAI_API_BASE: https://open.bigmodel.cn/api/paas/v4/
@@ -54,16 +54,10 @@ jobs:
           git checkout -b $BRANCH_NAME
           CLEANED_PROMPT=$(echo "$PROMPT" | sed 's/^\/ai //')
 
-          # --- PENGATURAN ANTI LOOP ---
-          # 1. --temperature 0: Memaksa AI deterministik (kaku), mengurangi khayalan/loop.
-          # 2. --no-weak-model-prompt: Matikan fitur "bantuan internal" yang sering memicu loop.
-          # 3. --max-tokens 4096: Batasi output supaya tidak berlarut-larut.
-          # 4. MODEL: Kita balik ke glm-4-flash (Standard Coding Model).
+          # KONFIGURASI BERSIH (Tanpa argumen invalid)
+          # Menggunakan model glm-4-flash yang stabil
           aider --model openai/glm-4-flash \
                 --editor-model openai/glm-4-flash \
-                --temperature 0 \
-                --max-tokens 4096 \
-                --no-weak-model-prompt \
                 --message="$CLEANED_PROMPT" \
                 --commit-prompt="Generate a concise commit message" \
                 --yes \
