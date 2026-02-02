@@ -155,7 +155,11 @@
     // ===================================
     
     function toggleBubbleSpawning(enable) {
-        const container = document.getElementById('bubbles');
+        // Spawn bubbles inside the liquid area to keep animation within the bar
+        // Previously this referenced a separate #bubbles container which caused
+        // bubbles to render above other UI elements. Now we render inside the
+        // liquid-container so the animation stays visually inside the bar.
+        const container = document.getElementById('liquid-container');
         if (!container) return;
         
         if (enable) {
