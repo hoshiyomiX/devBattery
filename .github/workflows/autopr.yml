@@ -1,0 +1,42 @@
+name: AutoPR
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  autopr:
+    runs-on: ubuntu-latest
+    # Timeout diperbesar karena model free kadang cold-start
+    timeout-minutes: 30 
+    
+    # Hanya jalan jika ada komentar /autopr
+    if: contains(github.event.comment.body, '/autopr')
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run AutoPR
+        uses: irgolic/autopr@v1 # Atau version terbaru
+        env:
+          # Kunci Rahasia
+          OPENAI_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          
+          # PENTING: Base URL harus mengarah ke Zhipu langsung
+          OPENAI_API_BASE: https://open.bigmodel.cn/api/paas/v4/
+          
+          # Model yang ingin dipakai (GLM-4 Flash biasanya gratis & cepat)
+          MODEL: glm-4.7-flash
+          
+          # Token GitHub agar AutoPR bisa buat PR
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
