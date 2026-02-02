@@ -14,7 +14,6 @@ permissions:
 jobs:
   autopr:
     runs-on: ubuntu-latest
-    # Timeout diperbesar karena model free kadang cold-start
     timeout-minutes: 30 
     
     # Hanya jalan jika ada komentar /autopr
@@ -27,16 +26,16 @@ jobs:
           fetch-depth: 0
 
       - name: Run AutoPR
-        uses: irgolic/autopr@v1 # Atau version terbaru
+        uses: irgolic/autopr@main  # <--- PERBAIKAN 1: Gunakan @main, bukan @v1
         env:
-          # Kunci Rahasia
+          # API Key dari Zhipu AI (BigModel)
           OPENAI_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
           
-          # PENTING: Base URL harus mengarah ke Zhipu langsung
-          OPENAI_API_BASE: https://open.bigmodel.cn/api/paas/v4/
+          # PERBAIKAN 2: Gunakan OPENAI_BASE_URL (Standar OpenAI Python), bukan API_BASE
+          # Ini akan mengarahkan request ke Zhipu, bukan OpenAI
+          OPENAI_BASE_URL: https://open.bigmodel.cn/api/paas/v4/
           
-          # Model yang ingin dipakai (GLM-4 Flash biasanya gratis & cepat)
+          # Model gratis & cepat dari Zhipu
           MODEL: glm-4.7-flash
           
-          # Token GitHub agar AutoPR bisa buat PR
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
