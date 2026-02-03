@@ -886,11 +886,8 @@
                 
                 updateLiquid(capacity);
                 
-                // Only control bubble spawning based on battery status if debug mode is off
-                if (!debugBubbleMode) {
-                    const chargingActive = lastStatus.toLowerCase() === 'charging';
-                    toggleBubbleSpawning(chargingActive);
-                }
+                const chargingActive = lastStatus.toLowerCase() === 'charging';
+                toggleBubbleSpawning(chargingActive);
                 
                 const isDraining = lastStatus.toLowerCase() === 'discharging' || lastStatus.toLowerCase() === 'not charging';
                 toggleDrainLeak(isDraining);
