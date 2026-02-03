@@ -18,6 +18,10 @@ class FluidSimulation {
         this.isCharging = 0;
         this.startTime = Date.now();
         
+        // Bubble System
+        this.bubbles = [];
+        this.maxBubbles = 100;
+        
         this.init();
     }
     
@@ -85,7 +89,9 @@ class FluidSimulation {
             capacity: gl.getUniformLocation(this.program, 'u_capacity'),
             color: gl.getUniformLocation(this.program, 'u_color'),
             resolution: gl.getUniformLocation(this.program, 'u_resolution'),
-            isCharging: gl.getUniformLocation(this.program, 'u_isCharging')
+            isCharging: gl.getUniformLocation(this.program, 'u_isCharging'),
+            // Note: You will need to add a u_bubbles uniform in your shader file
+            // bubbles: gl.getUniformLocation(this.program, 'u_bubbles') 
         };
         
         console.log('[FluidSim] Shaders compiled and linked');
@@ -157,6 +163,26 @@ class FluidSimulation {
         render();
     }
     
+    updateBubbles() {
+        // Spawn new bubbles if charging
+        if (this.isCharging > 0) {
+            if (this.bubbles.length < this.maxBubbles) {
+                this.bubbles.push(new Bubble());
+            }
+        }
+
+        // Update existing bubbles
+        for (let i = this.bubbles.length - 1; i >= 0; i--) {
+            let b = this.bubbles[i];
+            b.update();
+            
+            // Remove bubbles that go off the top of the screen
+            if (b.y < -1.0) {
+                this.bubbles.splice(i, 1);
+            }
+        }
+    }
+    
     render() {
         if (!this.isInitialized) return;
         
@@ -171,6 +197,9 @@ class FluidSimulation {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         
+        // Update bubble physics
+        this.updateBubbles();
+        
         // Set uniforms
         gl.uniform1f(this.uniforms.time, time);
         gl.uniform1f(this.uniforms.capacity, this.capacity);
@@ -178,8 +207,17 @@ class FluidSimulation {
         gl.uniform2f(this.uniforms.resolution, this.canvas.width, this.canvas.height);
         gl.uniform1i(this.uniforms.isCharging, this.isCharging);
         
+        // Note: You would pass bubble data here if your shader supports it
+        // gl.uniform4fv(this.uniforms.bubbles, this.flattenBubbles());
+        
         // Draw fullscreen quad
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
+    
+    // Helper to flatten bubble array for shader (if needed)
+    flattenBubbles() {
+        // Placeholder for shader data passing
+        return new Float32Array(0);
     }
     
     // Public API
@@ -204,6 +242,30 @@ class FluidSimulation {
             if (ext) ext.loseContext();
         }
         console.log('[FluidSim] Destroyed');
+    }
+}
+
+// Bubble Class
+class Bubble {
+    constructor() {
+        // Random X position within screen bounds (-0.8 to 0.8 to avoid edges)
+        this.x = (Math.random() * 1.6) - 0.8;
+        // Start at the bottom (y = 1.0)
+        this.y = 1.0;
+        // Random speed
+        this.speed = 0.002 + Math.random() * 0.004;
+        // Random size
+        this.size = 0.01 + Math.random() * 0.02;
+        // Wobble offset
+        this.wobble = Math.random() * Math.PI * 2;
+    }
+    
+    update() {
+        // Move up
+        this.y -= this.speed;
+        // Add wobble effect
+        this.wobble += 0.05;
+        this.x += Math.sin(this.wobble) * 0.002;
     }
 }
 
