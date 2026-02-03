@@ -564,6 +564,10 @@
         </div>
         
         <div class="action-buttons">
+            <button class="md-button md-button-outlined" onclick="toggleDebugBubbles()">
+                <span class="icon">🫧</span>
+                <span id="bubble-toggle-text">Toggle Bubbles</span>
+            </button>
             <button class="md-button md-button-filled" onclick="showDebug()">
                 <span class="icon">🔍</span>
                 <span>Show Debug Info</span>
@@ -600,6 +604,9 @@
         const SPLASH_TIMING = 1045;
         const LANDING_OFFSET = 15;
         const containerHeight = 200;
+        
+        // Debug mode for bubbles
+        let debugBubbleMode = false;
         
         function applyTheme(theme) {
             currentTheme = theme;
@@ -708,6 +715,13 @@
                 document.querySelectorAll('.bubble').forEach(b => b.remove());
                 bubbleCount = 0;
             }
+        }
+        
+        function toggleDebugBubbles() {
+            debugBubbleMode = !debugBubbleMode;
+            const btnText = document.getElementById('bubble-toggle-text');
+            btnText.textContent = debugBubbleMode ? "Bubbles: ON" : "Toggle Bubbles";
+            toggleBubbleSpawning(debugBubbleMode);
         }
         
         function spawnSplash(landingY, landingX) {
