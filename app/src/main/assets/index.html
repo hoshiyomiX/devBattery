@@ -42,22 +42,22 @@
         
         @keyframes bubbleRise {
             0% {
-                transform: translateY(0) scale(0);
+                transform: translateY(0) translateX(0) scale(0);
                 opacity: 0;
             }
-            10% {
+            25% {
                 opacity: 0.9;
-                transform: translateY(calc(var(--rise-distance) * 0.1)) scale(0.5);
+                transform: translateY(calc(var(--rise-distance) * 0.25)) translateX(calc(var(--bubble-wobble) * 0.5px)) scale(0.6);
             }
             50% {
-                transform: translateY(calc(var(--rise-distance) * 0.5)) scale(0.8);
+                transform: translateY(calc(var(--rise-distance) * 0.5)) translateX(calc(var(--bubble-wobble) * -0.7px)) scale(0.8);
             }
-            80% {
-                transform: translateY(calc(var(--rise-distance) * 0.85)) scale(1.1);
-                opacity: 0.8;
+            75% {
+                opacity: 0.85;
+                transform: translateY(calc(var(--rise-distance) * 0.75)) translateX(calc(var(--bubble-wobble) * 0.3px)) scale(1.1);
             }
             100% {
-                transform: translateY(var(--rise-distance)) scale(1.3);
+                transform: translateY(var(--rise-distance)) translateX(0) scale(1.3);
                 opacity: 0;
             }
         }
@@ -715,6 +715,7 @@
                 bubble.style.left = left + '%';
                 bubble.style.animationDuration = duration + 's';
                 bubble.style.setProperty('--rise-distance', riseDistance);
+                bubble.style.setProperty('--bubble-wobble', (Math.random() * 10 + 5).toFixed(0)); // Random wobble amount
                 
                 container.appendChild(bubble);
                 bubbleCount++;
