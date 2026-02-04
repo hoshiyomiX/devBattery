@@ -58,7 +58,7 @@ jobs:
 
       - name: Run Aider (Gemini 2.5 Flash)
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}  # <-- Simpan API key di repo Settings > Secrets and variables > Actions > New repository secret (nama: GEMINI_API_KEY)
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GH_TOKEN: ${{ github.token }}
           
           PROMPT: |
@@ -78,36 +78,31 @@ jobs:
                 --no-show-model-warnings \
                 --reasoning-effort high
 
-          echo "Checking for changes..."
-          if git diff --cached --quiet && git diff --quiet; then
-            echo "No changes made by Aider. Cleaning up branch..."
-            git checkout -
-            git branch -D $BRANCH_NAME
-            git push origin --delete $BRANCH_NAME || true
+          echo "Aider finished. Attempting to push and create PR..."
+          
+          # Tambah semua changes (kalau ada) dan amend kalau perlu
+          git add . || true
+          
+          # Commit lagi kalau Aider belum commit atau ada staged changes
+          git commit --amend --no-edit || true
+          
+          # Push (force-with-lease aman kalau branch baru)
+          git push origin $BRANCH_NAME --force-with-lease || echo "Push failed (mungkin no changes atau conflict)"
+          
+          # Ambil pesan commit terakhir (kalau ada commit)
+          if git rev-parse HEAD >/dev/null 2>&1; then
+            COMMIT_MSG=\( (git log -1 --pretty=%B | head -n1 | sed 's/^ *//;s/ * \)//')
+            if [ -n "$COMMIT_MSG" ]; then
+              TITLE="$COMMIT_MSG"
+            else
+              TITLE="🤖 Auto fix from /ai prompt (Gemini 2.5 Flash)"
+            fi
           else
-            echo "Changes detected. Committing, pushing, and creating PR..."
-            git add .
-            git commit --amend --no-edit || true  # kalau sudah ada commit dari Aider
-            
-            git push origin $BRANCH_NAME --force-with-lease
-            
-            # Ambil pesan commit terakhir sebagai title PR
-            COMMIT_MSG=$(git log -1 --pretty=%B | head -n1)
-            
-            gh pr create --title "$COMMIT_MSG" \
-                         --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash\n\n### 📝 Summary\n\n$COMMIT_MSG\n\n---\n*Prompt trigger: /ai*\n*Model: gemini-2.5-flash*" \
-                         --base ${{ github.event.repository.default_branch }} \
-                         || echo "PR creation failed (mungkin sudah ada atau conflict)"
-          fi
-
-      - name: Add Robot Reaction (🤖)
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if [ "${{ github.event_name }}" == "issue_comment" ]; then
-            SUBJECT_ID="${{ github.event.comment.node_id }}"
-          else
-            SUBJECT_ID="${{ github.event.issue.node_id }}"
+            TITLE="🤖 Auto fix attempt from /ai prompt (no changes applied)"
           fi
           
-          gh api graphql -f query='mutation($id: ID!) { addReaction(input: {subjectId: $id, content: ROBOT}) { reaction { content } } }' -f id=$SUBJECT_ID || echo "Failed to add 🤖 reaction"
+          # Coba create PR
+          gh pr create --title "$TITLE" \
+                       --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash\n\n### 📝 Summary\n\n$COMMIT_MSG\n\n---\n*Prompt trigger: /ai*\n*Model: gemini-2.5-flash*" \
+                       --base renuked \
+                       || echo "PR creation skipped/failed (mungkin sudah ada, no changes, atau conflict)"
