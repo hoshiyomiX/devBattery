@@ -66,9 +66,9 @@ jobs:
             ${{ github.event.issue.body }}
         run: |
           BRANCH_NAME="ai/fix-$(date +%s)"
-          git checkout -b $BRANCH_NAME
+          git checkout -b "$BRANCH_NAME"
           
-          CLEANED_PROMPT=$(echo "$PROMPT" | sed 's/^\/ai\s*//')  # hapus /ai di awal kalau dari comment
+          CLEANED_PROMPT=$(echo "$PROMPT" | sed 's/^\/ai\s*//')
 
           aider --model gemini/gemini-2.5-flash \
                 --editor-model gemini/gemini-2.5-flash \
@@ -76,33 +76,42 @@ jobs:
                 --commit-prompt="Generate a concise commit message in English, start with emoji relevant to change" \
                 --yes \
                 --no-show-model-warnings \
-                --reasoning-effort high
+                --reasoning-effort high \
+                --no-check-model-accepts-settings   # Suppress warning & force kalau perlu (opsional, bisa dihapus)
 
           echo "Aider finished. Attempting to push and create PR..."
           
-          # Tambah semua changes (kalau ada) dan amend kalau perlu
           git add . || true
           
-          # Commit lagi kalau Aider belum commit atau ada staged changes
           git commit --amend --no-edit || true
           
-          # Push (force-with-lease aman kalau branch baru)
-          git push origin $BRANCH_NAME --force-with-lease || echo "Push failed (mungkin no changes atau conflict)"
+          git push origin "$BRANCH_NAME" --force-with-lease || echo "Push failed (mungkin no changes atau conflict)"
           
-          # Ambil pesan commit terakhir (kalau ada commit)
-          if git rev-parse HEAD >/dev/null 2>&1; then
-            COMMIT_MSG=\( (git log -1 --pretty=%B | head -n1 | sed 's/^ *//;s/ * \)//')
-            if [ -n "$COMMIT_MSG" ]; then
-              TITLE="$COMMIT_MSG"
-            else
-              TITLE="🤖 Auto fix from /ai prompt (Gemini 2.5 Flash)"
-            fi
+          # Ambil commit message subject line (lebih aman)
+          COMMIT_MSG=\( (git log -1 --pretty=%s 2>/dev/null | sed 's/^ *//;s/ * \)//')
+          
+          if [ -n "$COMMIT_MSG" ]; then
+            TITLE="$COMMIT_MSG"
           else
-            TITLE="🤖 Auto fix attempt from /ai prompt (no changes applied)"
+            TITLE="🤖 Auto fix from /ai prompt (Gemini 2.5 Flash)"
           fi
           
-          # Coba create PR
+          # Escape body agar aman kalau COMMIT_MSG ada newline (jarang)
+          BODY=$(cat <<EOF
+## 🤖 Auto-Generated PR by Gemini 2.5 Flash
+
+### 📝 Summary
+
+$COMMIT_MSG
+
+---
+
+*Prompt trigger: /ai*
+*Model: gemini-2.5-flash*
+EOF
+          )
+
           gh pr create --title "$TITLE" \
-                       --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash\n\n### 📝 Summary\n\n$COMMIT_MSG\n\n---\n*Prompt trigger: /ai*\n*Model: gemini-2.5-flash*" \
+                       --body "$BODY" \
                        --base renuked \
                        || echo "PR creation skipped/failed (mungkin sudah ada, no changes, atau conflict)"
