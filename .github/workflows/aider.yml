@@ -94,11 +94,3 @@ jobs:
           gh pr create \
             --title "$TITLE" \
             --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash
-
-### Summary
-${RAW_TITLE:-Aider made changes (check commit diff)}
-
----
-Triggered by /ai • Model: gemini-2.5-flash" \
-            --base renuked \
-            || echo "gh pr create failed (probably already exists or no changes)"
