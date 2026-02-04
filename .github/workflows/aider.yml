@@ -55,7 +55,7 @@ jobs:
           else
             echo "Tidak ada branch lama yang perlu dibersihkan."
           fi
-
+          
       - name: Run Aider (Gemini 2.5 Flash)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -76,8 +76,7 @@ jobs:
                 --commit-prompt="Generate a concise commit message in English, start with emoji relevant to change" \
                 --yes \
                 --no-show-model-warnings
-
-          # (Hapus --reasoning-effort high kalau masih warn, atau tambah --no-check-model-accepts-settings)
+                # Hilangkan --reasoning-effort high supaya no warning (Gemini 2.5 Flash punya thinking built-in)
 
           echo "Aider finished. Attempting to push and create PR..."
           
@@ -85,33 +84,21 @@ jobs:
           
           git commit --amend --no-edit || true
           
-          git push origin "$BRANCH_NAME" --force-with-lease || echo "Push failed (mungkin no changes atau conflict)"
+          git push origin "$BRANCH_NAME" --force-with-lease || echo "Push failed (no changes or conflict)"
           
-          COMMIT_MSG=\( (git log -1 --pretty=%s 2>/dev/null | sed 's/^ *//;s/ * \)//')
+          # Simple commit message handling
+          COMMIT_MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "")
+          COMMIT_MSG="\( {COMMIT_MSG#" \){COMMIT_MSG%%[![:space:]]*}"}"   # trim leading spaces
+          COMMIT_MSG="\( {COMMIT_MSG%" \){COMMIT_MSG##*[![:space:]]}"}"   # trim trailing spaces
           
-          if [ -n "$COMMIT_MSG" ]; then
-            TITLE="$COMMIT_MSG"
+          if [ -z "$COMMIT_MSG" ]; then
+            TITLE="🤖 Auto fix from /ai prompt"
           else
-            TITLE="🤖 Auto fix from /ai prompt (Gemini 2.5 Flash)"
+            TITLE="$COMMIT_MSG"
           fi
           
-          BODY=$(cat <<'EOF'
-## 🤖 Auto-Generated PR by Gemini 2.5 Flash
-
-### 📝 Summary
-
-COMMIT_MSG_PLACEHOLDER
-
----
-
-*Prompt trigger: /ai*
-*Model: gemini-2.5-flash*
-EOF
-          )
-          
-          BODY="${BODY/COMMIT_MSG_PLACEHOLDER/$COMMIT_MSG}"
-
+          # Body PR simple, tanpa placeholder rumit
           gh pr create --title "$TITLE" \
-                       --body "$BODY" \
+                       --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash\n\n### Summary\n\n${COMMIT_MSG:-No detailed summary available}\n\n---\n*Triggered by /ai*\n*Model: gemini-2.5-flash*" \
                        --base renuked \
-                       || echo "PR creation skipped/failed (mungkin sudah ada, no changes, atau conflict)"
+                       || echo "PR creation skipped/failed (already exists, no changes, or conflict)"          
