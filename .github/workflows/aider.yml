@@ -65,47 +65,40 @@ jobs:
             ${{ github.event.comment.body }}
             ${{ github.event.issue.body }}
         run: |
+          set -euo pipefail   # fail fast on errors
+
           BRANCH_NAME="ai/fix-$(date +%s)"
           git checkout -b "$BRANCH_NAME"
-          
+
           CLEANED_PROMPT=$(echo "$PROMPT" | sed 's/^\/ai\s*//')
 
-          aider --model gemini/gemini-2.5-flash \
-                --editor-model gemini/gemini-2.5-flash \
-                --message="$CLEANED_PROMPT" \
-                --commit-prompt="Generate a concise commit message in English, start with emoji relevant to change" \
-                --yes \
-                --no-show-model-warnings
+          aider \
+            --model gemini/gemini-2.5-flash \
+            --editor-model gemini/gemini-2.5-flash \
+            --message "$CLEANED_PROMPT" \
+            --commit-prompt "Generate a concise commit message in English, start with emoji relevant to change" \
+            --yes \
+            --no-show-model-warnings
 
-          echo "Aider finished. Attempting to push and create PR..."
-          
+          echo "Aider finished → pushing branch & creating PR…"
+
           git add . || true
-          
           git commit --amend --no-edit || true
-          
-          git push origin "$BRANCH_NAME" --force-with-lease || echo "Push failed (no changes or conflict)"
-          
-          # Ambil subject commit message (first line saja)
-          COMMIT_MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "")
-          
-          # Trim leading & trailing whitespace dengan awk (paling aman di Actions)
-          COMMIT_MSG=$(echo "$COMMIT_MSG" | awk '{$1=$1};1')
-          
-          if [ -z "$COMMIT_MSG" ]; then
-            TITLE="🤖 Auto fix from /ai prompt"
-          else
-            TITLE="$COMMIT_MSG"
-          fi
-          
-          # Body PR sederhana dan aman
-          gh pr create --title "$TITLE" \
-                       --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash
+
+          git push origin "$BRANCH_NAME" --force-with-lease || true
+
+          # Very simple title & body – no advanced trimming
+          RAW_TITLE=$(git log -1 --pretty=%s 2>/dev/null || echo "")
+          TITLE="${RAW_TITLE:-🤖 Auto fix from /ai prompt}"
+
+          gh pr create \
+            --title "$TITLE" \
+            --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash
 
 ### Summary
-${COMMIT_MSG:-No detailed summary (Aider mungkin tidak membuat perubahan)}
+${RAW_TITLE:-Aider made changes (check commit diff)}
 
 ---
-*Triggered by /ai command*
-*Model: gemini-2.5-flash*" \
-                       --base renuked \
-                       || echo "PR creation skipped/failed (already exists, no changes, or conflict)"
+Triggered by /ai • Model: gemini-2.5-flash" \
+            --base renuked \
+            || echo "gh pr create failed (probably already exists or no changes)"
