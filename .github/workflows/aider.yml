@@ -1,4 +1,62 @@
-- name: Run Aider (Gemini 2.5 Flash)
+name: AI Agent (Gemini 2.5 Flash)
+
+on:
+  issue_comment:
+    types: [created]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  ai-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/ai')) ||
+      (github.event_name == 'issues' && contains(github.event.issue.body, '/ai'))
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Aider
+        run: pip install --upgrade aider-chat  # upgrade untuk dapat model Gemini terbaru
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "AI Agent"
+          git config --global user.email "ai-agent[bot]@users.noreply.github.com"
+
+      - name: Cleanup Old Junk Branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Menghapus branch 'ai/fix-*' lama..."
+          OLD_BRANCHES=$(git ls-remote --heads origin "ai/fix-*" | awk '{print $2}' | sed 's|refs/heads/||')
+          
+          if [ -n "$OLD_BRANCHES" ]; then
+            for BRANCH in $OLD_BRANCHES; do
+              echo "Menghapus branch: $BRANCH"
+              git push origin --delete "$BRANCH" || true
+            done
+          else
+            echo "Tidak ada branch lama yang perlu dibersihkan."
+          fi
+
+      - name: Run Aider (Gemini 2.5 Flash)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GH_TOKEN: ${{ github.token }}
