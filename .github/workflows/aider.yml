@@ -33,7 +33,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Aider
-        run: pip install --upgrade aider-chat  # upgrade untuk dapat model Gemini terbaru
+        run: pip install --upgrade aider-chat
 
       - name: Configure Git
         run: |
@@ -55,7 +55,7 @@ jobs:
           else
             echo "Tidak ada branch lama yang perlu dibersihkan."
           fi
-          
+
       - name: Run Aider (Gemini 2.5 Flash)
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -76,7 +76,6 @@ jobs:
                 --commit-prompt="Generate a concise commit message in English, start with emoji relevant to change" \
                 --yes \
                 --no-show-model-warnings
-                # Hilangkan --reasoning-effort high supaya no warning (Gemini 2.5 Flash punya thinking built-in)
 
           echo "Aider finished. Attempting to push and create PR..."
           
@@ -86,10 +85,11 @@ jobs:
           
           git push origin "$BRANCH_NAME" --force-with-lease || echo "Push failed (no changes or conflict)"
           
-          # Simple commit message handling
+          # Ambil subject commit message (first line saja)
           COMMIT_MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "")
-          COMMIT_MSG="\( {COMMIT_MSG#" \){COMMIT_MSG%%[![:space:]]*}"}"   # trim leading spaces
-          COMMIT_MSG="\( {COMMIT_MSG%" \){COMMIT_MSG##*[![:space:]]}"}"   # trim trailing spaces
+          
+          # Trim leading & trailing whitespace dengan awk (paling aman di Actions)
+          COMMIT_MSG=$(echo "$COMMIT_MSG" | awk '{$1=$1};1')
           
           if [ -z "$COMMIT_MSG" ]; then
             TITLE="🤖 Auto fix from /ai prompt"
@@ -97,8 +97,15 @@ jobs:
             TITLE="$COMMIT_MSG"
           fi
           
-          # Body PR simple, tanpa placeholder rumit
+          # Body PR sederhana dan aman
           gh pr create --title "$TITLE" \
-                       --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash\n\n### Summary\n\n${COMMIT_MSG:-No detailed summary available}\n\n---\n*Triggered by /ai*\n*Model: gemini-2.5-flash*" \
+                       --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash
+
+### Summary
+${COMMIT_MSG:-No detailed summary (Aider mungkin tidak membuat perubahan)}
+
+---
+*Triggered by /ai command*
+*Model: gemini-2.5-flash*" \
                        --base renuked \
-                       || echo "PR creation skipped/failed (already exists, no changes, or conflict)"          
+                       || echo "PR creation skipped/failed (already exists, no changes, or conflict)"
