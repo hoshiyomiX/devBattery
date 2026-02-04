@@ -692,13 +692,15 @@
 
         function spawnRandomBubble() {
             const container = document.getElementById('liquid-container');
+            const liquid = document.getElementById('liquid');
             const toSpawn = Math.max(0, computeBubbleSpawn(currentMA, bubbleCount));
             
-            // Calculate rise distance based on liquid height (bubbles rise to surface)
-            const riseDistance = -currentCapacity + '%';
+            // Get the actual pixel height of the liquid within its container
+            const liquidHeightPx = liquid.offsetHeight;
+            if (liquidHeightPx <= 0) return; // Don't spawn if no liquid or liquid not visible
             
             for (let i = 0; i < toSpawn; i++) {
-                if (container.children.length > MAX_BUBBLES) break;
+                if (container.children.length >= MAX_BUBBLES) break;
                 
                 const bubble = document.createElement('div');
                 bubble.className = 'bubble';
@@ -706,25 +708,34 @@
                 // Random size for variety
                 const size = 5 + Math.random() * 10;
                 // Random horizontal position within container
-                const left = Math.random() * 100; 
-                // Random animation duration (faster for higher current)
-                const duration = 1.5 + Math.random() * 1.5;
+                const left = Math.random() * 100;
+                
+                // Adjust animation duration based on liquid height
+                // Longer rise distance should result in a longer animation duration.
+                const maxContainerHeight = container.offsetHeight; // Max possible height for scaling duration
+                const heightRatio = liquidHeightPx / maxContainerHeight;
+                const baseDuration = 1.8; // Base duration for the animation
+                const duration = (baseDuration * 0.8 + (baseDuration * 0.4 * heightRatio) + (Math.random() * 0.5));
+                const finalDuration = Math.max(1.0, duration); // Ensure a minimum duration
                 
                 bubble.style.width = size + 'px';
                 bubble.style.height = size + 'px';
                 bubble.style.left = left + '%';
-                bubble.style.animationDuration = duration + 's';
-                bubble.style.setProperty('--rise-distance', riseDistance);
+                // Bubbles start at bottom: 0, and rise up to the liquid's current height.
+                // translateY needs a negative pixel value to move upwards.
+                bubble.style.setProperty('--rise-distance', -liquidHeightPx + 'px');
+                bubble.style.animationDuration = finalDuration + 's';
                 
                 container.appendChild(bubble);
                 bubbleCount++;
                 
-                // Remove bubble after it rises to the liquid level and pops
-                // We add a pause (1000ms) at the top before removing
+                // Remove bubble after its animation completes.
+                // The `bubbleRise` animation has `forwards`, so it stays at the end state (opacity 0).
+                // A small buffer ensures the animation completes visually before removal.
                 setTimeout(() => {
                     if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
                     bubbleCount--;
-                }, duration * 1000 + 1000);
+                }, finalDuration * 1000 + 50);
             }
         }
         
@@ -872,11 +883,9 @@
                 ${getBatteryColor(Math.min(100, percentage + 6))} 50%, 
                 ${color} 100%)`;
             
-            // Update rise distance for existing bubbles
-            const riseDistance = -percentage + '%';
-            document.querySelectorAll('.bubble').forEach(bubble => {
-                bubble.style.setProperty('--rise-distance', riseDistance);
-            });
+            // New bubbles will get the current liquid level as their target.
+            // Existing bubbles will continue their path to the level they were spawned for,
+            // avoiding visual inconsistencies from mid-animation target changes.
         }
         
         function animateValue(elementId, newValue) {
