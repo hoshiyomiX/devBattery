@@ -1,4 +1,4 @@
-name: AI Agent (Aider + Auto Cleanup & Emoji)
+name: AI Agent (Gemini 2.5 Flash)
 
 on:
   issue_comment:
@@ -33,7 +33,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Aider
-        run: pip install aider-chat
+        run: pip install --upgrade aider-chat  # upgrade untuk dapat model Gemini terbaru
 
       - name: Configure Git
         run: |
@@ -45,7 +45,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Menghapus branch 'ai/fix-*' lama..."
-          # Ambil list remote branch yang cocok dengan pattern
           OLD_BRANCHES=$(git ls-remote --heads origin "ai/fix-*" | awk '{print $2}' | sed 's|refs/heads/||')
           
           if [ -n "$OLD_BRANCHES" ]; then
@@ -57,10 +56,9 @@ jobs:
             echo "Tidak ada branch lama yang perlu dibersihkan."
           fi
 
-      - name: Run Aider (Z.ai GLM-4.7-Flash)
+      - name: Run Aider (Gemini 2.5 Flash)
         env:
-          OPENAI_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
-          OPENAI_API_BASE: https://api.z.ai/api/paas/v4/
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}  # <-- Simpan API key di repo Settings > Secrets and variables > Actions > New repository secret (nama: GEMINI_API_KEY)
           GH_TOKEN: ${{ github.token }}
           
           PROMPT: |
@@ -69,43 +67,47 @@ jobs:
         run: |
           BRANCH_NAME="ai/fix-$(date +%s)"
           git checkout -b $BRANCH_NAME
-          CLEANED_PROMPT=$(echo "$PROMPT" | sed 's/^\/ai //')
+          
+          CLEANED_PROMPT=$(echo "$PROMPT" | sed 's/^\/ai\s*//')  # hapus /ai di awal kalau dari comment
 
-          aider --model openai/glm-4.7-flash \
-                --editor-model openai/glm-4.7-flash \
+          aider --model gemini/gemini-2.5-flash \
+                --editor-model gemini/gemini-2.5-flash \
                 --message="$CLEANED_PROMPT" \
-                --commit-prompt="Generate a concise commit message" \
+                --commit-prompt="Generate a concise commit message in English, start with emoji relevant to change" \
                 --yes \
-                --no-show-model-warnings
+                --no-show-model-warnings \
                 --reasoning-effort high
 
           echo "Checking for changes..."
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "Changes found. Pushing and creating PR..."
-            git push origin $BRANCH_NAME
-            
-            # Ambil pesan commit terakhir sebagai Summary/Title PR
-            COMMIT_MSG=$(git log -1 --pretty=%B)
-            
-            # Buat PR dengan Title dari Summary AI (Auto-detected base branch)
-            gh pr create --title "$COMMIT_MSG" \
-                         --body "## 🤖 Auto-Generated PR\n\n### 📝 Summary\n\n$COMMIT_MSG\n\n---\n*Generated via Z.ai API*" \
-                         || echo "PR already exists"
+          if git diff --cached --quiet && git diff --quiet; then
+            echo "No changes made by Aider. Cleaning up branch..."
+            git checkout -
+            git branch -D $BRANCH_NAME
+            git push origin --delete $BRANCH_NAME || true
           else
-            echo "No changes made. Cleaning up new branch..."
-            git push origin :$BRANCH_NAME || true
+            echo "Changes detected. Committing, pushing, and creating PR..."
+            git add .
+            git commit --amend --no-edit || true  # kalau sudah ada commit dari Aider
+            
+            git push origin $BRANCH_NAME --force-with-lease
+            
+            # Ambil pesan commit terakhir sebagai title PR
+            COMMIT_MSG=$(git log -1 --pretty=%B | head -n1)
+            
+            gh pr create --title "$COMMIT_MSG" \
+                         --body "## 🤖 Auto-Generated PR by Gemini 2.5 Flash\n\n### 📝 Summary\n\n$COMMIT_MSG\n\n---\n*Prompt trigger: /ai*\n*Model: gemini-2.5-flash*" \
+                         --base ${{ github.event.repository.default_branch }} \
+                         || echo "PR creation failed (mungkin sudah ada atau conflict)"
           fi
 
-      - name: Add Robot Reaction (No Text Comment)
+      - name: Add Robot Reaction (🤖)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Tentukan apakah trigger dari Comment atau Issue Baru
           if [ "${{ github.event_name }}" == "issue_comment" ]; then
             SUBJECT_ID="${{ github.event.comment.node_id }}"
           else
             SUBJECT_ID="${{ github.event.issue.node_id }}"
           fi
           
-          # Tambahkan emoji reaction ROBOT 🤖
-          gh api graphql -f query='mutation($id: ID!) { addReaction(input: {subjectId: $id, content: ROBOT}) { reaction { content } } }' -f id=$SUBJECT_ID || echo "Failed to add reaction"
+          gh api graphql -f query='mutation($id: ID!) { addReaction(input: {subjectId: $id, content: ROBOT}) { reaction { content } } }' -f id=$SUBJECT_ID || echo "Failed to add 🤖 reaction"
