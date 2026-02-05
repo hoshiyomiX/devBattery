@@ -1,10 +1,10 @@
-name: opencode
+name: OpenCode Agent
 
 permissions:
-  id-token: write
-  contents: write
-  issues: write
-  pull-requests: write
+  id-token: write       # untuk OIDC jika provider butuh (opsional)
+  contents: write       # untuk push commit / edit file
+  issues: write         # untuk comment / close issue
+  pull-requests: write  # untuk review comment & PR edits
 
 on:
   issue_comment:
@@ -15,30 +15,45 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode')
+    timeout-minutes: 25   # hindari job hang terlalu lama
+
+    # Hanya jalan jika comment mengandung trigger + bukan dari bot sendiri
+    if: |
+      (contains(github.event.comment.body, '/oc') || 
+       contains(github.event.comment.body, '/opencode')) &&
+      github.actor != 'opencode-agent[bot]' &&
+      github.actor != github.event.repository.owner.login
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          fetch-depth: 5
+          fetch-depth: 1          # cukup untuk kebanyakan kasus agent → lebih cepat
           persist-credentials: false
 
-      - name: Configure Git identity
+      - name: Configure Git identity for commits
         run: |
           git config --global user.name "OpenCode Agent"
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
 
-      - name: Setup Git HTTPS credential with GITHUB_TOKEN
-        run: |
-          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+      # Opsional: jika butuh push langsung tanpa config url replacement
+      # OpenCode action biasanya handle sendiri kalau use_github_token: true
 
-      - name: Run OpenCode
+      - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Ganti sesuai provider yang kamu pakai
+          # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}     # contoh Claude
+          # OPENAI_API_KEY:     ${{ secrets.OPENAI_API_KEY }}       # contoh OpenAI
+          # GOOGLE_API_KEY:     ${{ secrets.GOOGLE_API_KEY }}       # Gemini
+          OPENCODE_API_KEY:   ${{ secrets.OPENCODE_API_KEY }}     # jika pakai opencode hosted
+          ZAI_API_KEY:        ${{ secrets.ZAI_API_KEY }}          # jika pakai ZAI
+          GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}         # hampir selalu dibutuhkan
         with:
-          model: opencode/glm-4.7-free
-          use_github_token: true
-          agent: plan
+          # Model yang direkomendasikan (pilih salah satu, sesuaikan dengan API key)
+          model: opencode/glm-4.7-free     # atau gpt-4o, gemini-1.5-pro, dll
+          # model: opencode/gpt-4o-mini-free     # jika pakai free tier opencode
+          
+          use_github_token: true                 # penting → biar action bisa push/comment otomatis
+          agent: general                         # atau 'build', 'plan', 'explore', dll
+          timeout: 1200                        # detik, jika ingin override default
