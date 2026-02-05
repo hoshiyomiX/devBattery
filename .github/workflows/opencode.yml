@@ -2,7 +2,7 @@ name: OpenCode Agent
 
 permissions:
   id-token: write
-  contents: write
+  contents: write       # Critical for push / branch creation
   issues: write
   pull-requests: write
 
@@ -24,44 +24,33 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4  # downgrade ke v4 untuk stabilitas lebih baik di 2026
+        uses: actions/checkout@v4   # v4 is very stable; v6 sometimes has quirks
         with:
           fetch-depth: 1
-          persist-credentials: false
+          persist-credentials: false   # Keep this — safer
 
       - name: Configure Git identity
         run: |
           git config --global user.name "OpenCode Agent"
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
 
+      # Remove the old "Setup Git HTTPS credential" step entirely — it's causing issues or not needed
+
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY:   ${{ secrets.OPENCODE_API_KEY }}
           ZAI_API_KEY:        ${{ secrets.ZAI_API_KEY }}
-          GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}  # atau ${{ github.token }}
-          # Tambahkan API key provider lain jika model butuh, misal:
-          # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN:       ${{ github.token }}   # Use github.token (built-in) instead of secrets.GITHUB_TOKEN
         with:
-          model: opencode/glm-4.7-free  # atau model yang kamu pakai, misal opencode/gpt-4o-free jika support
-          # model: opencode/glm-4.7-free   # jika ini model custom/hosted, pastikan API key sesuai
-
-          use_github_token: true
-          agent: general   # atau 'build', 'plan', dll sesuai kebutuhan
-
-          # Tambahan: override prompt untuk inject konfigurasi temperature, steps, reasoningEffort
-          # Ini akan override default agent behavior untuk invocation ini
+          model: opencode/glm-4.7-free   # or your preferred model
+          use_github_token: true           # This tells OpenCode to use the runner's token for git ops
+          agent: general
+          # Your custom prompt overrides if needed
           prompt: |
             {
               "temperature": 0.2,
               "steps": 12,
-              "reasoningEffort": "high",
-              "textVerbosity": "medium",   
-              "top_p": 0.95    
+              "reasoningEffort": "high"
             }
-            Process the user's request following standard OpenCode agent flow, 
-            but apply the above parameters strictly for this session.
-            Be precise, use high reasoning effort, limit to max 12 steps/iterations.
-
-          # Alternatif jika ingin lebih clean: buat custom agent di opencode.json repo,
-          # lalu ganti agent: nama-agent-kamu
+            Follow standard flow but apply strict parameters.
