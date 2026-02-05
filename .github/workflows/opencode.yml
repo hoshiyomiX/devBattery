@@ -41,4 +41,4 @@ jobs:
         with:
           model: opencode/glm-4.7-free
           use_github_token: true
-          agent: default
+          agent: plan
