@@ -1,10 +1,10 @@
 name: OpenCode Agent
 
 permissions:
-  id-token: write       # untuk OIDC jika provider butuh (opsional)
-  contents: write       # untuk push commit / edit file
-  issues: write         # untuk comment / close issue
-  pull-requests: write  # untuk review comment & PR edits
+  id-token: write
+  contents: write
+  issues: write
+  pull-requests: write
 
 on:
   issue_comment:
@@ -15,45 +15,53 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    timeout-minutes: 25   # hindari job hang terlalu lama
+    timeout-minutes: 30
 
-    # Hanya jalan jika comment mengandung trigger + bukan dari bot sendiri
     if: |
       (contains(github.event.comment.body, '/oc') || 
        contains(github.event.comment.body, '/opencode')) &&
-      github.actor != 'opencode-agent[bot]' &&
-      github.actor != github.event.repository.owner.login
+      !contains(github.actor, '[bot]')
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4  # downgrade ke v4 untuk stabilitas lebih baik di 2026
         with:
-          fetch-depth: 1          # cukup untuk kebanyakan kasus agent → lebih cepat
+          fetch-depth: 1
           persist-credentials: false
 
-      - name: Configure Git identity for commits
+      - name: Configure Git identity
         run: |
           git config --global user.name "OpenCode Agent"
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
 
-      # Opsional: jika butuh push langsung tanpa config url replacement
-      # OpenCode action biasanya handle sendiri kalau use_github_token: true
-
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
         env:
-          # Ganti sesuai provider yang kamu pakai
-          # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}     # contoh Claude
-          # OPENAI_API_KEY:     ${{ secrets.OPENAI_API_KEY }}       # contoh OpenAI
-          # GOOGLE_API_KEY:     ${{ secrets.GOOGLE_API_KEY }}       # Gemini
-          OPENCODE_API_KEY:   ${{ secrets.OPENCODE_API_KEY }}     # jika pakai opencode hosted
-          ZAI_API_KEY:        ${{ secrets.ZAI_API_KEY }}          # jika pakai ZAI
-          GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}         # hampir selalu dibutuhkan
+          OPENCODE_API_KEY:   ${{ secrets.OPENCODE_API_KEY }}
+          ZAI_API_KEY:        ${{ secrets.ZAI_API_KEY }}
+          GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}  # atau ${{ github.token }}
+          # Tambahkan API key provider lain jika model butuh, misal:
+          # ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         with:
-          # Model yang direkomendasikan (pilih salah satu, sesuaikan dengan API key)
-          model: opencode/glm-4.7-free     # atau gpt-4o, gemini-1.5-pro, dll
-          # model: opencode/gpt-4o-mini-free     # jika pakai free tier opencode
-          
-          use_github_token: true                 # penting → biar action bisa push/comment otomatis
-          agent: general                         # atau 'build', 'plan', 'explore', dll
-          timeout: 1200                        # detik, jika ingin override default
+          model: opencode/glm-4.7-free  # atau model yang kamu pakai, misal opencode/gpt-4o-free jika support
+          # model: opencode/glm-4.7-free   # jika ini model custom/hosted, pastikan API key sesuai
+
+          use_github_token: true
+          agent: general   # atau 'build', 'plan', dll sesuai kebutuhan
+
+          # Tambahan: override prompt untuk inject konfigurasi temperature, steps, reasoningEffort
+          # Ini akan override default agent behavior untuk invocation ini
+          prompt: |
+            {
+              "temperature": 0.2,
+              "steps": 12,
+              "reasoningEffort": "high",
+              "textVerbosity": "medium",   
+              "top_p": 0.95    
+            }
+            Process the user's request following standard OpenCode agent flow, 
+            but apply the above parameters strictly for this session.
+            Be precise, use high reasoning effort, limit to max 12 steps/iterations.
+
+          # Alternatif jika ingin lebih clean: buat custom agent di opencode.json repo,
+          # lalu ganti agent: nama-agent-kamu
