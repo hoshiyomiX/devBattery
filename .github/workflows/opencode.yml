@@ -1,8 +1,8 @@
 name: OpenCode Agent
 
 permissions:
-  id-token: write
-  contents: write       # Critical for push / branch creation
+  id-token: write       # optional, tapi aman untuk OIDC kalau dibutuhkan
+  contents: write       # wajib untuk push/commit/branch
   issues: write
   pull-requests: write
 
@@ -24,33 +24,35 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4   # v4 is very stable; v6 sometimes has quirks
+        uses: actions/checkout@v4   # v4 stabil, v6 kadang quirky di beberapa kasus
         with:
           fetch-depth: 1
-          persist-credentials: false   # Keep this — safer
+          persist-credentials: false   # penting: sesuai docs OpenCode
 
       - name: Configure Git identity
         run: |
           git config --global user.name "OpenCode Agent"
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
 
-      # Remove the old "Setup Git HTTPS credential" step entirely — it's causing issues or not needed
+      # JANGAN tambah step manual git config url atau set-url origin — biarkan action handle via app token
 
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY:   ${{ secrets.OPENCODE_API_KEY }}
           ZAI_API_KEY:        ${{ secrets.ZAI_API_KEY }}
-          GITHUB_TOKEN:       ${{ github.token }}   # Use github.token (built-in) instead of secrets.GITHUB_TOKEN
+          # GITHUB_TOKEN:       ${{ github.token }}   → HAPUS ini kalau pakai app token default
+          # Jangan set GITHUB_TOKEN manual kecuali kamu sengaja mau override ke runner token
         with:
-          model: opencode/glm-4.7-free   # or your preferred model
-          use_github_token: true           # This tells OpenCode to use the runner's token for git ops
+          model: opencode/glm-4.7-free   # atau model lain yang kamu pakai
+          # HAPUS use_github_token: true   → biar pakai app token
           agent: general
-          # Your custom prompt overrides if needed
+
+          # Custom params kamu tetap bisa
           prompt: |
             {
               "temperature": 0.2,
               "steps": 12,
               "reasoningEffort": "high"
             }
-            Follow standard flow but apply strict parameters.
+            Process the request with high precision and limited iterations.
