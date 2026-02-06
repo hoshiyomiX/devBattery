@@ -15,7 +15,7 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    timeout-minutes: 45   # Naikkan kalau free model queue
+    timeout-minutes: 45
 
     if: |
       (contains(github.event.comment.body, '/oc') || 
@@ -36,16 +36,20 @@ jobs:
 
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
-        env: {}   # Kosong untuk free Zen models (no auth needed)
+        env: {}  # Kosong untuk free Zen models
         with:
-          model: opencode/big-pickle   # ← Fix: pakai prefix opencode/ + nama model
-          # Alternatif kalau big-pickle tidak cocok: opencode/minimax-m2.1-free atau opencode/kimi-k2.5-free
+          model: opencode/kimi-k2.5-free   # atau opencode/kimi-k2.5-free kalau ingin test (sering lebih akurat di coding)
           agent: general
-
           prompt: |
             {
-              "temperature": 0.2,
-              "steps": 12,
-              "reasoningEffort": "high"
+              "temperature": 0.1,
+              "steps": 10,
+              "reasoningEffort": "medium",
+              "textVerbosity": "low"
             }
-            Process the request with high precision and limited iterations.
+            You are a precise coding agent. Stick strictly to the provided files and user request. 
+            Think step-by-step briefly in <thinking> tags (max 200 words). 
+            Do NOT hallucinate non-existent code, APIs, or behaviors. 
+            If uncertain, state it clearly and stop. 
+            Output ONLY the necessary file changes or diffs. 
+            Be concise, no unnecessary explanations outside <thinking>.
