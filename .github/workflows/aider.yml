@@ -77,19 +77,24 @@ jobs:
         id: prepare
         run: |
           if [ "${{ github.event_name }}" = "issue_comment" ]; then
-            TASK=\( (echo " \){{ github.event.comment.body }}" | sed -n 's/.*\/aider \(.*\)/\1/p' | xargs)
+            # Extract everything after /aider (handles spaces, quotes, etc. better)
+            TASK=\( (echo " \){{ github.event.comment.body }}" | sed -n 's/.*\/aider[[:space:]]*\(.*\)/\1/p' | xargs)
+            
             if [ -z "$TASK" ]; then
               echo "No task found after /aider command → skipping"
               exit 1
             fi
+            
             BRANCH="aider-gemini-${{ github.run_id }}"
             echo "Comment trigger detected. Task: $TASK"
           else
+            # workflow_dispatch path
             TASK="${{ inputs.task }}"
             BRANCH="${{ inputs.branch }}"
             if [ -z "$BRANCH" ]; then
               BRANCH="aider-gemini-${{ github.run_id }}"
             fi
+            echo "Manual dispatch. Task: $TASK"
           fi
 
           MODEL="${{ inputs.model || 'gemini/gemini-2.5-flash' }}"
@@ -97,7 +102,7 @@ jobs:
           echo "task=$TASK" >> $GITHUB_OUTPUT
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           echo "model=$MODEL" >> $GITHUB_OUTPUT
-
+          
       - name: Run Aider AI Agent
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
