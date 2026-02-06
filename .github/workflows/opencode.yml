@@ -38,7 +38,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env: {}  # Kosong untuk free Zen models
         with:
-          model: opencode/kimi-k2.5-free   # atau opencode/kimi-k2.5-free kalau ingin test (sering lebih akurat di coding)
+          model: opencode/big-pickle   # atau opencode/kimi-k2.5-free kalau ingin test (sering lebih akurat di coding)
           agent: general
           prompt: |
             {
