@@ -42,27 +42,35 @@
         
         @keyframes bubbleRise {
             0% {
-                transform: translateY(0) scale(0);
+                transform: translate3d(0, 0, 0) scale3d(0, 0, 1) rotate(0deg);
                 opacity: 0;
             }
-            10% {
+            8% {
+                opacity: 0.8;
+                transform: translate3d(var(--wobble-1), calc(var(--rise-distance) * 0.12), 0) scale3d(0.55, 0.65, 1) rotate(5deg);
+            }
+            20% {
+                transform: translate3d(var(--wobble-2), calc(var(--rise-distance) * 0.28), 0) scale3d(0.75, 0.85, 1) rotate(-3deg);
                 opacity: 1;
-                transform: translateY(calc(var(--rise-distance) * 0.15)) scale(0.6);
             }
-            30% {
-                transform: translateY(calc(var(--rise-distance) * 0.4)) scale(0.9);
+            35% {
+                transform: translate3d(var(--wobble-3), calc(var(--rise-distance) * 0.45), 0) scale3d(0.9, 0.95, 1) rotate(8deg);
                 opacity: 1;
             }
-            60% {
-                transform: translateY(calc(var(--rise-distance) * 0.75)) scale(1.0);
-                opacity: 0.9;
+            50% {
+                transform: translate3d(var(--wobble-4), calc(var(--rise-distance) * 0.62), 0) scale3d(1.0, 1.0, 1) rotate(-5deg);
+                opacity: 0.95;
             }
-            85% {
-                transform: translateY(calc(var(--rise-distance) * 0.95)) scale(1.15);
-                opacity: 0.6;
+            65% {
+                transform: translate3d(var(--wobble-5), calc(var(--rise-distance) * 0.78), 0) scale3d(1.1, 1.05, 1) rotate(4deg);
+                opacity: 0.8;
+            }
+            80% {
+                transform: translate3d(var(--wobble-6), calc(var(--rise-distance) * 0.9), 0) scale3d(1.2, 1.15, 1) rotate(-2deg);
+                opacity: 0.5;
             }
             100% {
-                transform: translateY(var(--rise-distance)) scale(1.25);
+                transform: translate3d(var(--wobble-end), var(--rise-distance), 0) scale3d(1.3, 1.25, 1) rotate(0deg);
                 opacity: 0;
             }
         }
@@ -357,8 +365,11 @@
             border-radius: 50%;
             pointer-events: none;
             box-shadow: 0 0 6px rgba(255, 255, 255, 0.5), inset 0 0 4px rgba(255, 255, 255, 0.9);
-            animation: bubbleRise ease-out forwards;
+            animation: bubbleRise cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
             will-change: transform, opacity;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
         }
         
         .drain-drip {
@@ -702,6 +713,7 @@
             const toSpawn = Math.max(0, computeBubbleSpawn(currentMA, bubbleCount));
             
             const containerHeight = container.offsetHeight;
+            const containerWidth = container.offsetWidth;
             const liquidHeightPx = liquid.offsetHeight;
             if (liquidHeightPx <= 0) return;
             
@@ -713,19 +725,47 @@
                 const bubble = document.createElement('div');
                 bubble.className = 'bubble';
                 
-                const size = 4 + Math.random() * 8;
-                const left = Math.random() * 90 + 5;
+                // More natural size variation
+                const size = 3 + Math.random() * 9;
+                const left = Math.random() * 85 + 7.5;
+                const baseLeftPx = (left / 100) * containerWidth;
+                
+                // Create natural wobble pattern - bubbles drift left/right as they rise
+                const wobbleAmp = 3 + Math.random() * 8; // Wobble amplitude
+                const wobbleFreq = 0.5 + Math.random() * 1.5; // Wobble frequency
+                const phase = Math.random() * Math.PI * 2; // Random starting phase
+                
+                // Calculate wobble positions at different heights
+                const wobble1 = Math.sin(phase + 0.5 * wobbleFreq) * wobbleAmp;
+                const wobble2 = Math.sin(phase + 1.2 * wobbleFreq) * wobbleAmp * 0.8;
+                const wobble3 = Math.sin(phase + 1.8 * wobbleFreq) * wobbleAmp * 0.6;
+                const wobble4 = Math.sin(phase + 2.3 * wobbleFreq) * wobbleAmp * 0.4;
+                const wobble5 = Math.sin(phase + 2.8 * wobbleFreq) * wobbleAmp * 0.3;
+                const wobble6 = Math.sin(phase + 3.2 * wobbleFreq) * wobbleAmp * 0.2;
+                const wobbleEnd = Math.sin(phase + 3.5 * wobbleFreq) * wobbleAmp * 0.1;
+                
+                // Add slight randomness to each wobble point
+                const randomJitter = () => (Math.random() - 0.5) * 4;
                 
                 const heightRatio = liquidHeightPx / containerHeight;
-                const baseDuration = 2.0;
-                const duration = (baseDuration * 0.6 + (baseDuration * 0.6 * heightRatio) + (Math.random() * 0.4));
-                const finalDuration = Math.max(1.2, duration);
+                // Natural rise duration based on size (smaller bubbles rise faster)
+                const sizeFactor = 1.0 - ((size - 3) / 9) * 0.3;
+                const baseDuration = 2.2 * sizeFactor;
+                const duration = (baseDuration * 0.7 + (baseDuration * 0.5 * heightRatio) + (Math.random() * 0.6));
+                const finalDuration = Math.max(1.5, Math.min(3.5, duration));
                 
                 bubble.style.width = size + 'px';
                 bubble.style.height = size + 'px';
                 bubble.style.left = left + '%';
                 bubble.style.bottom = '0';
                 bubble.style.setProperty('--rise-distance', -riseDistance + 'px');
+                bubble.style.setProperty('--wobble-1', (wobble1 + randomJitter()) + 'px');
+                bubble.style.setProperty('--wobble-2', (wobble2 + randomJitter()) + 'px');
+                bubble.style.setProperty('--wobble-3', (wobble3 + randomJitter()) + 'px');
+                bubble.style.setProperty('--wobble-4', (wobble4 + randomJitter()) + 'px');
+                bubble.style.setProperty('--wobble-5', (wobble5 + randomJitter()) + 'px');
+                bubble.style.setProperty('--wobble-6', (wobble6 + randomJitter()) + 'px');
+                bubble.style.setProperty('--wobble-end', (wobbleEnd + randomJitter()) + 'px');
                 bubble.style.animationDuration = finalDuration + 's';
                 
                 container.appendChild(bubble);
