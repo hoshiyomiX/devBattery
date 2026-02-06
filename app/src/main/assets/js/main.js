@@ -38,17 +38,21 @@
         if (container.children.length > 20) return;  // cap
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
-        const size = Math.random() * 12 + 6;  // 6-18px
-        const left = Math.random() * 80 + 10;
-        const duration = Math.random() * 2 + 2.5; // 2.5-4.5s
+        const size = Math.random() * 10 + 4;  // 4-14px - smaller for smoother motion
+        const left = Math.random() * 75 + 12.5;
+        // More natural duration variation based on size
+        const sizeFactor = 1.0 - ((size - 4) / 10) * 0.3; // smaller bubbles rise faster
+        const baseDuration = 2.8;
+        const duration = (baseDuration * sizeFactor) + (Math.random() * 0.8); // 2.1-3.6s
         bubble.style.width = size + 'px';
         bubble.style.height = size + 'px';
         bubble.style.left = left + '%';
         bubble.style.animationDuration = duration + 's';
+        bubble.style.animationDelay = (Math.random() * 0.2) + 's'; // slight delay for natural stagger
         container.appendChild(bubble);
         setTimeout(() => {
             if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-        }, duration * 1000);
+        }, (duration + 0.2) * 1000);
     }
     
     // ===================================
@@ -168,7 +172,7 @@
                     if (document.visibilityState === 'visible') {
                         spawnRandomBubble(container);
                     }
-                }, 600);  // Faster spawn rate
+                }, 450);  // Smoother spawn rate - less frequent but more natural
             }
         } else {
             if (bubbleSpawnInterval) {
