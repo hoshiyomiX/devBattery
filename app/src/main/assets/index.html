@@ -42,39 +42,39 @@
         
         @keyframes bubbleRise {
             0% {
-                transform: translate3d(0, 0, 0) scale3d(0.15, 0.15, 1) rotate(0deg);
+                transform: translate3d(0, 0, 0) scale3d(0.1, 0.1, 1);
                 opacity: 0;
             }
-            8% {
-                opacity: 0.2;
-                transform: translate3d(var(--wobble-1), calc(var(--rise-distance) * 0.08), 0) scale3d(0.3, 0.35, 1) rotate(1deg);
+            5% {
+                opacity: 0;
+                transform: translate3d(var(--wobble-1), calc(var(--rise-distance) * 0.05), 0) scale3d(0.25, 0.28, 1);
             }
-            20% {
-                opacity: 0.7;
-                transform: translate3d(var(--wobble-2), calc(var(--rise-distance) * 0.2), 0) scale3d(0.5, 0.6, 1) rotate(2deg);
+            15% {
+                opacity: 0.6;
+                transform: translate3d(var(--wobble-2), calc(var(--rise-distance) * 0.15), 0) scale3d(0.55, 0.6, 1);
             }
-            35% {
-                transform: translate3d(var(--wobble-3), calc(var(--rise-distance) * 0.35), 0) scale3d(0.75, 0.8, 1) rotate(-1deg);
+            30% {
+                opacity: 0.95;
+                transform: translate3d(var(--wobble-3), calc(var(--rise-distance) * 0.3), 0) scale3d(0.85, 0.9, 1);
+            }
+            45% {
+                transform: translate3d(var(--wobble-4), calc(var(--rise-distance) * 0.45), 0) scale3d(1.0, 1.05, 1);
                 opacity: 1;
             }
-            50% {
-                transform: translate3d(var(--wobble-4), calc(var(--rise-distance) * 0.5), 0) scale3d(0.95, 1.0, 1) rotate(3deg);
-                opacity: 0.95;
+            60% {
+                transform: translate3d(var(--wobble-5), calc(var(--rise-distance) * 0.6), 0) scale3d(1.05, 1.08, 1);
+                opacity: 0.85;
             }
-            65% {
-                transform: translate3d(var(--wobble-5), calc(var(--rise-distance) * 0.65), 0) scale3d(1.05, 1.1, 1) rotate(-2deg);
-                opacity: 0.8;
-            }
-            80% {
-                transform: translate3d(var(--wobble-6), calc(var(--rise-distance) * 0.8), 0) scale3d(1.1, 1.15, 1) rotate(1deg);
+            75% {
+                transform: translate3d(var(--wobble-6), calc(var(--rise-distance) * 0.75), 0) scale3d(1.02, 1.05, 1);
                 opacity: 0.5;
             }
-            92% {
-                transform: translate3d(var(--wobble-end), calc(var(--rise-distance) * 0.92), 0) scale3d(1.05, 1.1, 1) rotate(-0.5deg);
-                opacity: 0.2;
+            90% {
+                transform: translate3d(var(--wobble-end), calc(var(--rise-distance) * 0.9), 0) scale3d(0.95, 0.98, 1);
+                opacity: 0.15;
             }
             100% {
-                transform: translate3d(var(--wobble-end), var(--rise-distance), 0) scale3d(0.9, 0.95, 1) rotate(0deg);
+                transform: translate3d(var(--wobble-end), var(--rise-distance), 0) scale3d(0.85, 0.9, 1);
                 opacity: 0;
             }
         }
@@ -365,16 +365,17 @@
             left: 0;
             width: 10px;
             height: 10px;
-            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.7) 40%, rgba(255, 255, 255, 0.3) 100%);
+            opacity: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.65) 40%, rgba(255, 255, 255, 0.25) 100%);
             border-radius: 50%;
             pointer-events: none;
-            box-shadow: 0 0 6px rgba(255, 255, 255, 0.5), inset 0 0 4px rgba(255, 255, 255, 0.9);
-            animation: bubbleRise cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+            animation: bubbleRise cubic-bezier(0.4, 0, 0.2, 1) forwards;
             will-change: transform, opacity;
             transform-style: preserve-3d;
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
-            transform: translateZ(0); /* Force GPU acceleration */
+            transform: translateZ(0);
             -webkit-transform: translateZ(0);
         }
         
@@ -736,22 +737,22 @@
                 const left = Math.random() * 80 + 10; // Better distribution
                 const baseLeftPx = (left / 100) * containerWidth;
                 
-                // Create more natural wobble pattern with smoother sine waves
-                const wobbleAmp = 2 + Math.random() * 6; // Reduced amplitude for smoother motion
-                const wobbleFreq = 0.3 + Math.random() * 0.8; // Lower frequency for gentler wobble
-                const phase = Math.random() * Math.PI * 2; // Random starting phase
+                // Smoother wobble using gentler sine curves
+                const wobbleAmp = 3 + Math.random() * 5; // 3-8px amplitude
+                const wobbleFreq = 0.4 + Math.random() * 0.5; // Gentler frequency 0.4-0.9
+                const phase = Math.random() * Math.PI * 2;
                 
-                // Calculate smoother wobble positions at different heights
-                const wobble1 = Math.sin(phase + 0.3 * wobbleFreq) * wobbleAmp * 0.4;
-                const wobble2 = Math.sin(phase + 0.8 * wobbleFreq) * wobbleAmp * 0.7;
-                const wobble3 = Math.sin(phase + 1.5 * wobbleFreq) * wobbleAmp * 0.9;
-                const wobble4 = Math.sin(phase + 2.2 * wobbleFreq) * wobbleAmp * 0.8;
-                const wobble5 = Math.sin(phase + 2.9 * wobbleFreq) * wobbleAmp * 0.5;
-                const wobble6 = Math.sin(phase + 3.4 * wobbleFreq) * wobbleAmp * 0.3;
-                const wobbleEnd = Math.sin(phase + 3.8 * wobbleFreq) * wobbleAmp * 0.1;
+                // Smooth wobble positions using continuous sine wave
+                const wobble1 = Math.sin(phase + 0.4 * wobbleFreq) * wobbleAmp * 0.3;
+                const wobble2 = Math.sin(phase + 1.0 * wobbleFreq) * wobbleAmp * 0.6;
+                const wobble3 = Math.sin(phase + 1.8 * wobbleFreq) * wobbleAmp * 0.9;
+                const wobble4 = Math.sin(phase + 2.4 * wobbleFreq) * wobbleAmp * 0.85;
+                const wobble5 = Math.sin(phase + 3.0 * wobbleFreq) * wobbleAmp * 0.6;
+                const wobble6 = Math.sin(phase + 3.5 * wobbleFreq) * wobbleAmp * 0.35;
+                const wobbleEnd = Math.sin(phase + 4.0 * wobbleFreq) * wobbleAmp * 0.15;
                 
-                // Reduced jitter for smoother motion
-                const randomJitter = () => (Math.random() - 0.5) * 2;
+                // Minimal jitter for ultra-smooth motion
+                const randomJitter = () => (Math.random() - 0.5) * 1.5;
                 
                 const heightRatio = liquidHeightPx / containerHeight;
                 // More natural rise duration based on size (smaller bubbles rise faster)
@@ -787,7 +788,7 @@
         
         function toggleBubbleSpawning(active) {
             if (active && !bubbleSpawnInterval) {
-                bubbleSpawnInterval = setInterval(spawnRandomBubble, 550); // Slightly slower for smoother flow
+                bubbleSpawnInterval = setInterval(spawnRandomBubble, 400); // Faster interval for more continuous flow
                 isCharging = true;
             } else if (!active && bubbleSpawnInterval) {
                 clearInterval(bubbleSpawnInterval);

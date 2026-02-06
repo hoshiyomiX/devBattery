@@ -202,16 +202,7 @@ body {
     z-index: 1;
 }
 
-/* Bubbles container (for charging) */
-.bubbles {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 2;
-}
+
 
 /* ===================================
    Safe Areas
