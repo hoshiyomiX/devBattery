@@ -79,21 +79,16 @@ jobs:
           if [ "${{ github.event_name }}" = "issue_comment" ]; then
             comment="${{ github.event.comment.body }}"
 
-            if [[ "$comment" == */aider* ]]; then
-              TASK="${comment#*/aider}"
-              
-              # Trim leading whitespace
-              TASK="\( {TASK#" \){TASK%%[![:space:]]*}"}"
-              
-              # Trim trailing whitespace
-              TASK="\( {TASK%" \){TASK##*[![:space:]]}"}"
-
-              if [ -z "$TASK" ]; then
-                echo "No task found after /aider (empty after trim) → skipping"
-                exit 1
-              fi
-            else
+            if [[ "$comment" != */aider* ]]; then
               echo "No /aider found in comment → skipping"
+              exit 1
+            fi
+
+            TASK="${comment#*/aider}"
+            TASK=$(echo "$TASK" | xargs)  # Trim leading/trailing whitespace in one step
+
+            if [ -z "$TASK" ]; then
+              echo "No task found after /aider (empty after trim) → skipping"
               exit 1
             fi
 
