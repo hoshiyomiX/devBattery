@@ -115,15 +115,17 @@ jobs:
             --no-pretty \
             --no-stream
 
-      - name: Get default branch name
+      # ... (your previous steps: checkout, install aider, configure API key, determine task/branch, run aider)
+
+      - name: Get repository default branch
         id: get-default
         run: |
           DEFAULT_BRANCH=$(gh repo view --json defaultBranch --jq .defaultBranch)
-          echo "default_branch=$DEFAULT_BRANCH" >> $GITHUB_OUTPUT
+          echo "default_branch=$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Pull Request (if changes)
+      - name: Create Pull Request (if changes exist)
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -136,10 +138,17 @@ jobs:
             
             - Model: ${{ steps.prepare.outputs.model }}
             - Workflow run: \( {{ github.server_url }}/ \){{ github.repository }}/actions/runs/${{ github.run_id }}
-          branch: ${{ steps.prepare.outputs.branch }}
-          base: ${{ steps.get-default.outputs.default_branch }}
+          branch: ${{ steps.prepare.outputs.branch }}               # head = your new feature branch
+          base: ${{ steps.get-default.outputs.default_branch }}     # dynamic base (main/master/etc.)
           delete-branch: true
           labels: ai-generated, aider, glm
+          # Optional extras from your log:
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          author: hoshiyomiX <138315928+hoshiyomiX@users.noreply.github.com>
+          signoff: false
+          sign-commits: false
+          draft: false
+          maintainer-can-modify: true
           
       - name: Comment result on issue/PR (if from comment)
         if: github.event_name == 'issue_comment'
