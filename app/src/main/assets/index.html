@@ -47,21 +47,21 @@
             }
             5% {
                 opacity: 0.6;
-                transform: translateY(calc(var(--rise-distance) * 0.05)) translateX(2px);
+                transform: translateY(calc(var(--rise-distance) * 0.05)) translateX(calc(var(--curve-amplitude) * 0.4));
             }
             20% {
                 opacity: 1;
-                transform: translateY(calc(var(--rise-distance) * 0.2)) translateX(-1px);
+                transform: translateY(calc(var(--rise-distance) * 0.2)) translateX(calc(var(--curve-amplitude) * -0.2));
             }
             40% {
-                transform: translateY(calc(var(--rise-distance) * 0.4)) translateX(3px);
+                transform: translateY(calc(var(--rise-distance) * 0.4)) translateX(calc(var(--curve-amplitude) * 0.6));
             }
             60% {
-                transform: translateY(calc(var(--rise-distance) * 0.6)) translateX(-2px);
+                transform: translateY(calc(var(--rise-distance) * 0.6)) translateX(calc(var(--curve-amplitude) * -0.4));
             }
             80% {
                 opacity: 0.5;
-                transform: translateY(calc(var(--rise-distance) * 0.8)) translateX(1px);
+                transform: translateY(calc(var(--rise-distance) * 0.8)) translateX(calc(var(--curve-amplitude) * 0.2));
             }
             100% {
                 transform: translateY(var(--rise-distance)) translateX(0);
@@ -724,16 +724,20 @@
                 
                 const heightRatio = liquidHeightPx / containerHeight;
                 // Rise duration based on size (smaller bubbles rise faster) and liquid height
-                const sizeFactor = 1.0 - ((size - 4) / 5) * 0.25;
-                const baseDuration = 2.5 * sizeFactor;
-                const duration = baseDuration * (0.8 + heightRatio * 0.2 + Math.random() * 0.15);
-                const finalDuration = Math.max(2.0, Math.min(3.2, duration));
+                const sizeFactor = 1.0 - ((size - 4) / 5) * 0.4; // Increased size influence on speed
+                const baseDuration = 2.8 * sizeFactor; // Slightly longer base duration
+                const duration = baseDuration * (0.8 + heightRatio * 0.2 + Math.random() * 0.1);
+                const finalDuration = Math.max(2.0, Math.min(3.5, duration));
+                
+                // Curve amplitude based on size (larger bubbles curve more)
+                const curveAmplitude = 2 + ((size - 4) / 5) * 3; // 2-5px curve based on size
                 
                 bubble.style.width = size + 'px';
                 bubble.style.height = size + 'px';
                 bubble.style.left = left + '%';
                 bubble.style.bottom = '0';
                 bubble.style.setProperty('--rise-distance', -riseDistance + 'px');
+                bubble.style.setProperty('--curve-amplitude', curveAmplitude + 'px');
                 bubble.style.animationDuration = finalDuration + 's';
                 bubble.style.animationDelay = (Math.random() * 0.15) + 's'; // Reduced stagger for smoother flow
                 
