@@ -43,7 +43,7 @@ jobs:
           # GITHUB_TOKEN:       ${{ github.token }}   → HAPUS ini kalau pakai app token default
           # Jangan set GITHUB_TOKEN manual kecuali kamu sengaja mau override ke runner token
         with:
-          model: opencode/gpt-4o-mini-free   # atau model lain yang kamu pakai
+          model: opencode/kimi-k2.5-free   # atau model lain yang kamu pakai
           # HAPUS use_github_token: true   → biar pakai app token
           agent: general
 
