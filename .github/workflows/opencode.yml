@@ -38,13 +38,13 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env: {}  # Kosong untuk free Zen models
         with:
-          model: opencode/big-pickle   # atau opencode/kimi-k2.5-free kalau ingin test (sering lebih akurat di coding)
+          model: opencode/kimi-k2.5-free   # atau opencode/kimi-k2.5-free kalau ingin test (sering lebih akurat di coding)
           agent: general
           prompt: |
             {
               "temperature": 0.1,
               "steps": 10,
-              "reasoningEffort": "medium",
+              "reasoningEffort": "high",
               "textVerbosity": "low"
             }
             You are a precise coding agent. Stick strictly to the provided files and user request. 
