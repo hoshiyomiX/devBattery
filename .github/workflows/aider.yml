@@ -119,12 +119,17 @@ jobs:
         id: get-default
         run: |
           set -e
+
+          # Run API call and capture output/error
           DEFAULT_BRANCH=\( (gh api repos/ \){{ github.repository }} --jq .default_branch 2>/tmp/gh_err || echo "")
+
           if [ -z "$DEFAULT_BRANCH" ]; then
-            echo "Failed to detect default branch via API. Error:"
-            cat /tmp/gh_err
-            DEFAULT_BRANCH="renuked"  # ← your known default branch as fallback
+            echo "Failed to detect default branch via gh api. Error output:"
+            cat /tmp/gh_err || echo "No error file content"
+            echo "Falling back to known default: renuked"
+            DEFAULT_BRANCH="renuked"
           fi
+
           echo "default_branch=$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
           echo "Detected default branch: $DEFAULT_BRANCH"
         env:
