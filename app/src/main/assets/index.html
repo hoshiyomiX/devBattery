@@ -718,19 +718,38 @@
                 const bubble = document.createElement('div');
                 bubble.className = 'bubble';
                 
-                // Natural size variation for realistic bubbles
-                const size = 4 + Math.random() * 10; // 4-14px for 3 size varieties
+                // 3 distinct bubble sizes with pronounced differences
+                const sizeCategory = Math.random();
+                let size, speedMultiplier, curveMultiplier;
+                
+                if (sizeCategory < 0.33) {
+                    // Small bubbles (33% chance)
+                    size = 4 + Math.random() * 2; // 4-6px
+                    speedMultiplier = 0.6; // Rise 40% faster
+                    curveMultiplier = 0.5; // Less curve
+                } else if (sizeCategory < 0.67) {
+                    // Medium bubbles (33% chance)
+                    size = 7 + Math.random() * 3; // 7-9px
+                    speedMultiplier = 0.8; // Rise 20% faster
+                    curveMultiplier = 0.8; // Moderate curve
+                } else {
+                    // Large bubbles (34% chance)
+                    size = 10 + Math.random() * 4; // 10-14px
+                    speedMultiplier = 1.2; // Rise 20% slower
+                    curveMultiplier = 1.5; // More curve
+                }
+                
                 const left = Math.random() * 80 + 10; // Better distribution across container
                 
                 const heightRatio = liquidHeightPx / containerHeight;
-                // Rise duration based on size (smaller bubbles rise faster) and liquid height
-                const sizeFactor = 1.0 - ((size - 4) / 10) * 0.4; // Increased size influence on speed
-                const baseDuration = 2.8 * sizeFactor; // Slightly longer base duration
-                const duration = baseDuration * (0.8 + heightRatio * 0.2 + Math.random() * 0.1);
-                const finalDuration = Math.max(2.0, Math.min(3.5, duration));
+                // Rise duration with pronounced size differences
+                const baseDuration = 2.5; // Shorter base for more dynamic feel
+                const duration = baseDuration * speedMultiplier * (0.8 + heightRatio * 0.2 + Math.random() * 0.1);
+                const finalDuration = Math.max(1.5, Math.min(4.0, duration));
                 
-                // Curve amplitude based on size (larger bubbles curve more)
-                const curveAmplitude = 2 + ((size - 4) / 10) * 4; // 2-6px curve based on size
+                // Curve amplitude with pronounced size differences
+                const baseCurve = 3; // Base curve amplitude
+                const curveAmplitude = baseCurve * curveMultiplier; // 1.5-4.5px curve based on size
                 
                 bubble.style.width = size + 'px';
                 bubble.style.height = size + 'px';
