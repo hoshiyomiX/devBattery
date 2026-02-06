@@ -1,8 +1,8 @@
 name: OpenCode Agent
 
 permissions:
-  id-token: write       # optional, tapi aman untuk OIDC kalau dibutuhkan
-  contents: write       # wajib untuk push/commit/branch
+  id-token: write
+  contents: write
   issues: write
   pull-requests: write
 
@@ -15,7 +15,7 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45   # Naikkan biar aman kalau model free lagi lambat
 
     if: |
       (contains(github.event.comment.body, '/oc') || 
@@ -24,30 +24,28 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4   # v4 stabil, v6 kadang quirky di beberapa kasus
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
-          persist-credentials: false   # penting: sesuai docs OpenCode
+          persist-credentials: false
 
       - name: Configure Git identity
         run: |
           git config --global user.name "OpenCode Agent"
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
 
-      # JANGAN tambah step manual git config url atau set-url origin — biarkan action handle via app token
-
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
         env:
-          GOOGLE_GENERATIVE_AI_API_KEY:   ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
-          # GITHUB_TOKEN:       ${{ github.token }}   → HAPUS ini kalau pakai app token default
-          # Jangan set GITHUB_TOKEN manual kecuali kamu sengaja mau override ke runner token
+          # Hapus semua API key env kalau pakai free model OpenCode native
+          # GOOGLE_GENERATIVE_AI_API_KEY:   ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}  → hapus
+          # OPENCODE_API_KEY: ... → hapus kalau free
         with:
-          model: google/gemini-2.5-flash   # atau model lain yang kamu pakai
-          # HAPUS use_github_token: true   → biar pakai app token
+          model: opencode/glm-4.7-free   # ← Coba ini dulu (prefix opencode/ sering work)
+          # Alternatif kalau tidak jalan: glm-4.7-free (tanpa prefix)
+          # Atau kalau kamu punya Z.ai key: zai-coding-plan/glm-4.7-flash (berbayar)
           agent: general
 
-          # Custom params kamu tetap bisa
           prompt: |
             {
               "temperature": 0.2,
