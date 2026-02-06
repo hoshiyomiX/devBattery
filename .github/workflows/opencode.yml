@@ -39,17 +39,18 @@ jobs:
         env: {}  # Tetap kosong untuk free Zen
         with:
           model: opencode/big-pickle   # ← Coba ini dulu; kalau masih lambat ganti ke opencode/kimi-k2.5-free
-          agent: general
+          agent: build
           prompt: |
             {
               "temperature": 0.05,
               "steps": 8,
-              "reasoningEffort": "low",
+              "reasoningEffort": "medium",
               "textVerbosity": "low",
               "top_p": 0.9
             }
-            You are a fast and precise coding agent. 
-            Think VERY briefly in <thinking> tags (max 100 words total). 
-            Stick strictly to files and request — no assumptions or invented code. 
-            If uncertain, say so immediately. 
-            Output ONLY necessary changes/diffs — be ultra-concise, no extra explanations.
+            You are a fast, precise, and reliable coding agent. 
+            <thinking>Think step-by-step VERY briefly (max 80–120 words total). Focus on key logic, edge cases, and plan only what is necessary.</thinking>
+            Double-check your plan for correctness before any changes.
+            Stick strictly to the provided files and user request — no assumptions, no invented functions/APIs.
+            If uncertain about behavior or requirements, state it clearly and stop.
+            Output ONLY the minimal necessary changes (diffs or full file if small) — ultra-concise, no extra chit-chat.
