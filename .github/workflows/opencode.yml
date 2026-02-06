@@ -15,7 +15,7 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    timeout-minutes: 45   # Naikkan biar aman kalau model free lagi lambat
+    timeout-minutes: 45  # Naikkan sedikit biar aman kalau free tier lambat
 
     if: |
       (contains(github.event.comment.body, '/oc') || 
@@ -36,14 +36,11 @@ jobs:
 
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
-        env:
-          # Hapus semua API key env kalau pakai free model OpenCode native
-          # GOOGLE_GENERATIVE_AI_API_KEY:   ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}  → hapus
-          # OPENCODE_API_KEY: ... → hapus kalau free
+        env: {}  # Kosongkan env sepenuhnya untuk free model (atau hapus block env ini)
         with:
-          model: opencode/glm-4.7-free   # ← Coba ini dulu (prefix opencode/ sering work)
-          # Alternatif kalau tidak jalan: glm-4.7-free (tanpa prefix)
-          # Atau kalau kamu punya Z.ai key: zai-coding-plan/glm-4.7-flash (berbayar)
+          model: opencode/glm-4.7-free  # ← Gunakan ini dulu (varian free resmi GLM-4.7)
+          # Kalau tidak jalan, coba alternatif: glm-4.7-free (tanpa opencode/)
+          # Tidak ada "opencode/glm-4.7-flash-free" di docs resmi — mungkin typo atau custom; GLM-4.7-Flash free biasanya via Z.ai bukan OpenCode direct
           agent: general
 
           prompt: |
