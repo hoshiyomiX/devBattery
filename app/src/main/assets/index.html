@@ -45,27 +45,32 @@
                 transform: translateY(0) translateX(0);
                 opacity: 0;
             }
-            10% {
-                opacity: 0.7;
-                transform: translateY(calc(var(--rise-distance) * 0.1)) translateX(calc(var(--curve-amplitude) * 0.3));
+            8% {
+                opacity: 0.6;
+                transform: translateY(calc(var(--rise-distance) * 0.08)) translateX(calc(var(--curve-amplitude) * 0.15));
             }
-            25% {
+            20% {
+                opacity: 0.9;
+                transform: translateY(calc(var(--rise-distance) * 0.2)) translateX(calc(var(--curve-amplitude) * 0.5));
+            }
+            35% {
                 opacity: 1;
-                transform: translateY(calc(var(--rise-distance) * 0.25)) translateX(calc(var(--curve-amplitude) * 0.8));
+                transform: translateY(calc(var(--rise-distance) * 0.35)) translateX(calc(var(--curve-amplitude) * 0.85));
             }
-            40% {
-                transform: translateY(calc(var(--rise-distance) * 0.4)) translateX(calc(var(--curve-amplitude) * 0.4));
+            50% {
+                transform: translateY(calc(var(--rise-distance) * 0.5)) translateX(calc(var(--curve-amplitude) * 0.3));
             }
-            55% {
-                transform: translateY(calc(var(--rise-distance) * 0.55)) translateX(calc(var(--curve-amplitude) * -0.6));
+            65% {
+                opacity: 0.9;
+                transform: translateY(calc(var(--rise-distance) * 0.65)) translateX(calc(var(--curve-amplitude) * -0.4));
             }
-            70% {
-                opacity: 0.8;
-                transform: translateY(calc(var(--rise-distance) * 0.7)) translateX(calc(var(--curve-amplitude) * -0.3));
+            80% {
+                opacity: 0.5;
+                transform: translateY(calc(var(--rise-distance) * 0.8)) translateX(calc(var(--curve-amplitude) * -0.2));
             }
-            85% {
-                opacity: 0.4;
-                transform: translateY(calc(var(--rise-distance) * 0.85)) translateX(calc(var(--curve-amplitude) * 0.1));
+            92% {
+                opacity: 0.2;
+                transform: translateY(calc(var(--rise-distance) * 0.92)) translateX(calc(var(--curve-amplitude) * 0.05));
             }
             100% {
                 transform: translateY(var(--rise-distance)) translateX(0);
@@ -751,9 +756,10 @@
                 const duration = baseDuration * speedMultiplier * (0.7 + heightRatio * 0.3 + Math.random() * 0.15);
                 const finalDuration = Math.max(1.2, Math.min(5.0, duration));
                 
-                // Curve amplitude with extended natural curves
+                // Curve amplitude with extended natural curves and random track length
                 const baseCurve = 8; // Extended base curve amplitude
-                const curveAmplitude = baseCurve * curveMultiplier; // 3.2-14.4px curve based on size
+                const curveVariation = 0.6 + Math.random() * 0.8; // Random variation: 0.6-1.4
+                const curveAmplitude = baseCurve * curveMultiplier * curveVariation; // More natural curve variation
                 
                 bubble.style.width = size + 'px';
                 bubble.style.height = size + 'px';
