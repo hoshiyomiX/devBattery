@@ -38,22 +38,17 @@
         if (container.children.length > 20) return;  // cap
         const bubble = document.createElement('div');
         bubble.className = 'bubble';
-        const size = Math.random() * 8 + 4;  // 4-12px - smaller for smoother motion
+        const size = Math.random() * 10 + 4;  // 4-14px - smaller for smoother motion
         const left = Math.random() * 75 + 12.5;
         // More natural duration variation based on size
-        const sizeFactor = 1.0 - ((size - 4) / 8) * 0.25; // smaller bubbles rise faster
-        const baseDuration = 3.2;
-        const duration = (baseDuration * sizeFactor) + (Math.random() * 0.6); // 2.4-3.8s
-        // Natural horizontal sway for curved rise path
-        const swayAmplitude = (Math.random() * 16 + 6) * (Math.random() < 0.5 ? 1 : -1);
-        const containerHeight = container.offsetHeight;
+        const sizeFactor = 1.0 - ((size - 4) / 10) * 0.3; // smaller bubbles rise faster
+        const baseDuration = 2.8;
+        const duration = (baseDuration * sizeFactor) + (Math.random() * 0.8); // 2.1-3.6s
         bubble.style.width = size + 'px';
         bubble.style.height = size + 'px';
         bubble.style.left = left + '%';
-        bubble.style.setProperty('--rise-distance', -containerHeight + 'px');
-        bubble.style.setProperty('--sway-amp', swayAmplitude + 'px');
         bubble.style.animationDuration = duration + 's';
-        bubble.style.animationDelay = (Math.random() * 0.15) + 's';
+        bubble.style.animationDelay = (Math.random() * 0.2) + 's'; // slight delay for natural stagger
         container.appendChild(bubble);
         setTimeout(() => {
             if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
