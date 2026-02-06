@@ -15,7 +15,7 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    timeout-minutes: 45   # Biar aman kalau free model lagi queue
+    timeout-minutes: 45   # Naikkan kalau free model queue
 
     if: |
       (contains(github.event.comment.body, '/oc') || 
@@ -36,10 +36,10 @@ jobs:
 
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
-        env: {}   # Kosong untuk free models (no key needed)
+        env: {}   # Kosong untuk free Zen models (no auth needed)
         with:
-          model: big-pickle   # ← Best free choice sekarang
-          # Alternatif: minimax-m2.1-free atau kimi-k2.5-free
+          model: opencode/big-pickle   # ← Fix: pakai prefix opencode/ + nama model
+          # Alternatif kalau big-pickle tidak cocok: opencode/minimax-m2.1-free atau opencode/kimi-k2.5-free
           agent: general
 
           prompt: |
