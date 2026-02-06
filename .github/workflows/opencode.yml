@@ -39,11 +39,11 @@ jobs:
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
         env:
-          OPENCODE_API_KEY:   ${{ secrets.OPENCODE_API_KEY }}
+          GEMINI_API_KEY:   ${{ secrets.GEMINI_API_KEY }}
           # GITHUB_TOKEN:       ${{ github.token }}   → HAPUS ini kalau pakai app token default
           # Jangan set GITHUB_TOKEN manual kecuali kamu sengaja mau override ke runner token
         with:
-          model: opencode/kimi-k2.5-free   # atau model lain yang kamu pakai
+          model: google/gemini-2.5-flash   # atau model lain yang kamu pakai
           # HAPUS use_github_token: true   → biar pakai app token
           agent: general
 
