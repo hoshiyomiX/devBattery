@@ -40,7 +40,6 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env:
           OPENCODE_API_KEY:   ${{ secrets.OPENCODE_API_KEY }}
-          ZAI_API_KEY:        ${{ secrets.ZAI_API_KEY }}
           # GITHUB_TOKEN:       ${{ github.token }}   → HAPUS ini kalau pakai app token default
           # Jangan set GITHUB_TOKEN manual kecuali kamu sengaja mau override ke runner token
         with:
