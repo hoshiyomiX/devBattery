@@ -15,7 +15,7 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    timeout-minutes: 45  # Naikkan sedikit biar aman kalau free tier lambat
+    timeout-minutes: 45   # Biar aman kalau free model lagi queue
 
     if: |
       (contains(github.event.comment.body, '/oc') || 
@@ -36,11 +36,10 @@ jobs:
 
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
-        env: {}  # Kosongkan env sepenuhnya untuk free model (atau hapus block env ini)
+        env: {}   # Kosong untuk free models (no key needed)
         with:
-          model: opencode/glm-4.7-free  # ← Gunakan ini dulu (varian free resmi GLM-4.7)
-          # Kalau tidak jalan, coba alternatif: glm-4.7-free (tanpa opencode/)
-          # Tidak ada "opencode/glm-4.7-flash-free" di docs resmi — mungkin typo atau custom; GLM-4.7-Flash free biasanya via Z.ai bukan OpenCode direct
+          model: big-pickle   # ← Best free choice sekarang
+          # Alternatif: minimax-m2.1-free atau kimi-k2.5-free
           agent: general
 
           prompt: |
