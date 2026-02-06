@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   aider-agent:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'issue_comment' && contains(github.event.comment.body, '/aider') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/aider')) }}
 
     runs-on: ubuntu-latest
 
@@ -53,7 +53,7 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install aider-chat
 
-      - name: Record Aider version (optional, improves cache stability)
+      - name: Record Aider version
         run: pip show aider-chat | grep Version > aider-version.txt || true
 
       - name: Configure Zhipu API Key
@@ -69,27 +69,27 @@ jobs:
             comment="${{ github.event.comment.body }}"
 
             if [[ "$comment" != */aider* ]]; then
-              echo "No /aider found in comment → skipping"
-              exit 1
+              echo "No /aider command found in comment → skipping"
+              exit 0
             fi
 
             TASK="${comment#*/aider}"
-            TASK=$(echo "$TASK" | xargs)  # Trim leading/trailing whitespace
+            TASK=$(echo "$TASK" | xargs)
 
             if [ -z "$TASK" ]; then
-              echo "No task found after /aider (empty after trim) → skipping"
-              exit 1
+              echo "No meaningful task after /aider → skipping"
+              exit 0
             fi
 
             BRANCH="aider-glm-${{ github.run_id }}"
-            echo "Comment trigger detected. Task: '$TASK'"
+            echo "Comment trigger → Task: '$TASK'"
           else
             TASK="${{ inputs.task }}"
             BRANCH="${{ inputs.branch }}"
             if [ -z "$BRANCH" ]; then
               BRANCH="aider-glm-${{ github.run_id }}"
             fi
-            echo "Manual dispatch. Task: '$TASK'"
+            echo "Manual dispatch → Task: '$TASK'"
           fi
 
           MODEL="${{ inputs.model || 'zhipu/glm-4-flash' }}"
@@ -98,7 +98,7 @@ jobs:
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
           echo "model=$MODEL" >> "$GITHUB_OUTPUT"
 
-      - name: Run Aider AI Agent
+      - name: Run Aider
         env:
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         run: |
@@ -115,13 +115,12 @@ jobs:
             --no-pretty \
             --no-stream
 
-      # ... (your previous steps: checkout, install aider, configure API key, determine task/branch, run aider)
-
       - name: Get repository default branch
         id: get-default
         run: |
-          DEFAULT_BRANCH=$(gh repo view --json defaultBranch --jq .defaultBranch)
+          DEFAULT_BRANCH=\( (gh api repos/ \){{ github.repository }} --jq .default_branch)
           echo "default_branch=$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Default branch detected: $DEFAULT_BRANCH"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -138,26 +137,25 @@ jobs:
             
             - Model: ${{ steps.prepare.outputs.model }}
             - Workflow run: \( {{ github.server_url }}/ \){{ github.repository }}/actions/runs/${{ github.run_id }}
-          branch: ${{ steps.prepare.outputs.branch }}               # head = your new feature branch
-          base: ${{ steps.get-default.outputs.default_branch }}     # dynamic base (main/master/etc.)
+          branch: ${{ steps.prepare.outputs.branch }}
+          base: ${{ steps.get-default.outputs.default_branch }}
           delete-branch: true
           labels: ai-generated, aider, glm
-          # Optional extras from your log:
           committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           author: hoshiyomiX <138315928+hoshiyomiX@users.noreply.github.com>
           signoff: false
           sign-commits: false
           draft: false
           maintainer-can-modify: true
-          
-      - name: Comment result on issue/PR (if from comment)
+
+      - name: Comment result on issue/PR (if triggered by comment)
         if: github.event_name == 'issue_comment'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
           body: |
-            Aider + GLM sudah selesai memproses tugas:
+            Aider + GLM selesai memproses:
             > ${{ steps.prepare.outputs.task }}
 
-            Cek PR yang dibuat: \( {{ github.server_url }}/ \){{ github.repository }}/pulls?q=is%3Apr+head%3A${{ steps.prepare.outputs.branch }}
+            Cek PR: \( {{ github.server_url }}/ \){{ github.repository }}/pulls?q=is%3Apr+head%3A${{ steps.prepare.outputs.branch }}
