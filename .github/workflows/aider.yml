@@ -1,10 +1,10 @@
-name: Aider + Gemini AI Coding Agent
+name: Aider + Gemini/GLM AI Coding Agent
 
 on:
-  workflow_dispatch:    # Bisa di-trigger manual dari Actions tab
+  workflow_dispatch:
     inputs:
       task:
-        description: 'Deskripsi tugas untuk Aider (contoh: "fix bug di login page" atau "tambah dark mode toggle")'
+        description: 'Deskripsi tugas untuk Aider (contoh: "fix bug di login page")'
         required: true
         type: string
       branch:
@@ -12,27 +12,22 @@ on:
         required: false
         default: ''
       model:
-        description: 'Gemini model (gemini/gemini-2.5-pro atau gemini/gemini-2.5-flash)'
+        description: 'Model (gemini/gemini-2.5-flash atau zhipu/glm-4-flash)'
         required: false
         default: 'gemini/gemini-2.5-flash'
 
-  # (Opsional) Trigger dari comment di issue/PR
   issue_comment:
     types: [created]
 
 permissions:
-  contents: write          # Penting agar bisa commit & push
-  pull-requests: write     # Bisa buat PR
-  issues: write            # Bisa comment di issue
+  contents: write
+  pull-requests: write
+  issues: write
 
 jobs:
   aider-agent:
-  
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'issue_comment' &&
-      contains(github.event.comment.body, '/aider')
-      
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/aider')) }}
+
     runs-on: ubuntu-latest
 
     steps:
@@ -45,33 +40,27 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          # No cache: 'pip' here — we handle it manually below
 
-      - name: Cache pip wheels & http cache
+      - name: Cache pip
         uses: actions/cache@v4
         with:
-          path: |
-            \~/.cache/pip
-            \~/.cache/pip-http
-          key: \( {{ runner.os }}-pip- \){{ hashFiles('**/aider-version.txt') || github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          path: \~/.cache/pip
+          key: \( {{ runner.os }}-pip-aider- \){{ hashFiles('**/aider-version.txt') || github.run_id }}
+          restore-keys: ${{ runner.os }}-pip-aider-
 
       - name: Install Aider
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install --no-cache-dir aider-chat   # --no-cache-dir optional if you want to force fresh sometimes
+          pip install aider-chat
 
-      # Optional: Create a marker file so cache key changes when Aider version updates
-      - name: Record Aider version for cache key
-        run: |
-          pip show aider-chat | grep '^Version:' > aider-version.txt || echo "unknown" > aider-version.txt
-          
-      - name: Configure Gemini API Key
+      - name: Record Aider version
+        run: pip show aider-chat | grep Version > aider-version.txt || true
+
+      - name: Configure API Key
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.ZHIPU_API_KEY }}
         run: |
-          echo "export GEMINI_API_KEY=$GEMINI_API_KEY" >> $GITHUB_ENV
+          echo "export API_KEY=$API_KEY" >> $GITHUB_ENV
 
       - name: Determine task and branch
         id: prepare
@@ -80,27 +69,27 @@ jobs:
             comment="${{ github.event.comment.body }}"
 
             if [[ "$comment" != */aider* ]]; then
-              echo "No /aider found in comment → skipping"
-              exit 1
+              echo "No /aider command found → skipping"
+              exit 0
             fi
 
             TASK="${comment#*/aider}"
-            TASK=$(echo "$TASK" | xargs)  # Trim leading/trailing whitespace in one step
+            TASK=$(echo "$TASK" | xargs)
 
             if [ -z "$TASK" ]; then
-              echo "No task found after /aider (empty after trim) → skipping"
-              exit 1
+              echo "No meaningful task after /aider → skipping"
+              exit 0
             fi
 
-            BRANCH="aider-gemini-${{ github.run_id }}"
-            echo "Comment trigger detected. Task: '$TASK'"
+            BRANCH="aider-ai-${{ github.run_id }}"
+            echo "Comment trigger → Task: '$TASK'"
           else
             TASK="${{ inputs.task }}"
             BRANCH="${{ inputs.branch }}"
             if [ -z "$BRANCH" ]; then
-              BRANCH="aider-gemini-${{ github.run_id }}"
+              BRANCH="aider-ai-${{ github.run_id }}"
             fi
-            echo "Manual dispatch. Task: '$TASK'"
+            echo "Manual dispatch → Task: '$TASK'"
           fi
 
           MODEL="${{ inputs.model || 'gemini/gemini-2.5-flash' }}"
@@ -108,51 +97,77 @@ jobs:
           echo "task=$TASK" >> "$GITHUB_OUTPUT"
           echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
           echo "model=$MODEL" >> "$GITHUB_OUTPUT"
-          
-      - name: Run Aider AI Agent
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          git config --global user.name "Aider-Gemini Agent"
-          git config --global user.email "aider-gemini@github-actions"
 
-          # Buat & checkout branch baru
+      - name: Run Aider
+        env:
+          API_KEY: ${{ env.API_KEY }}
+        run: |
+          git config --global user.name "Aider AI Agent"
+          git config --global user.email "aider-ai@github-actions"
+
           git checkout -b ${{ steps.prepare.outputs.branch }} || git checkout ${{ steps.prepare.outputs.branch }}
 
-          # Jalankan Aider (non-interactive, single shot)
           aider \
             --model ${{ steps.prepare.outputs.model }} \
             --message "${{ steps.prepare.outputs.task }}" \
             --yes \
             --auto-commits \
-            --no-pretty  \
+            --no-pretty \
             --no-stream
 
-      - name: Create Pull Request (jika ada perubahan)
+      - name: Get repository default branch
+        id: get-default
+        run: |
+          set -e
+          DEFAULT_BRANCH=\( (gh api repos/ \){{ github.repository }} --jq .default_branch 2>/tmp/gh_err || echo "")
+          if [ -z "$DEFAULT_BRANCH" ]; then
+            echo "Failed to detect default branch via API. Error:"
+            cat /tmp/gh_err
+            DEFAULT_BRANCH="renuked"  # ← your known default branch as fallback
+          fi
+          echo "default_branch=$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "Detected default branch: $DEFAULT_BRANCH"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Debug branches before PR
+        run: |
+          echo "Current checked-out branch: $(git branch --show-current)"
+          echo "Intended head branch: ${{ steps.prepare.outputs.branch }}"
+          echo "Detected base branch: ${{ steps.get-default.outputs.default_branch }}"
+
+      - name: Create Pull Request (if changes exist)
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Aider + Gemini: ${{ steps.prepare.outputs.task }}"
+          commit-message: "Aider + AI: ${{ steps.prepare.outputs.task }}"
           title: "AI Fix/Feature: ${{ steps.prepare.outputs.task }}"
           body: |
             **Task:** ${{ steps.prepare.outputs.task }}
             
-            Generated by Aider + Gemini ${{ steps.prepare.outputs.model }} via GitHub Actions
+            Generated by Aider + ${{ steps.prepare.outputs.model }} via GitHub Actions
             
             - Model: ${{ steps.prepare.outputs.model }}
             - Workflow run: \( {{ github.server_url }}/ \){{ github.repository }}/actions/runs/${{ github.run_id }}
           branch: ${{ steps.prepare.outputs.branch }}
+          base: ${{ steps.get-default.outputs.default_branch }}
           delete-branch: true
-          labels: ai-generated, aider, gemini
+          labels: ai-generated, aider
+          committer: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          author: hoshiyomiX <138315928+hoshiyomiX@users.noreply.github.com>
+          signoff: false
+          sign-commits: false
+          draft: false
+          maintainer-can-modify: true
 
-      - name: Comment result on issue/PR (jika dipicu dari comment)
+      - name: Comment result (if from comment)
         if: github.event_name == 'issue_comment'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           issue-number: ${{ github.event.issue.number }}
           body: |
-            Aider + Gemini sudah selesai memproses tugas:
+            Aider selesai memproses:
             > ${{ steps.prepare.outputs.task }}
 
-            Cek PR yang dibuat: \( {{ github.server_url }}/ \){{ github.repository }}/pulls?q=is%3Apr+head%3A${{ steps.prepare.outputs.branch }}
+            Cek PR: \( {{ github.server_url }}/ \){{ github.repository }}/pulls?q=is%3Apr+head%3A${{ steps.prepare.outputs.branch }}
