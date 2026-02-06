@@ -45,23 +45,27 @@
                 transform: translateY(0) translateX(0);
                 opacity: 0;
             }
-            5% {
-                opacity: 0.6;
-                transform: translateY(calc(var(--rise-distance) * 0.05)) translateX(calc(var(--curve-amplitude) * 0.4));
+            10% {
+                opacity: 0.7;
+                transform: translateY(calc(var(--rise-distance) * 0.1)) translateX(calc(var(--curve-amplitude) * 0.3));
             }
-            20% {
+            25% {
                 opacity: 1;
-                transform: translateY(calc(var(--rise-distance) * 0.2)) translateX(calc(var(--curve-amplitude) * -0.2));
+                transform: translateY(calc(var(--rise-distance) * 0.25)) translateX(calc(var(--curve-amplitude) * 0.8));
             }
             40% {
-                transform: translateY(calc(var(--rise-distance) * 0.4)) translateX(calc(var(--curve-amplitude) * 0.6));
+                transform: translateY(calc(var(--rise-distance) * 0.4)) translateX(calc(var(--curve-amplitude) * 0.4));
             }
-            60% {
-                transform: translateY(calc(var(--rise-distance) * 0.6)) translateX(calc(var(--curve-amplitude) * -0.4));
+            55% {
+                transform: translateY(calc(var(--rise-distance) * 0.55)) translateX(calc(var(--curve-amplitude) * -0.6));
             }
-            80% {
-                opacity: 0.5;
-                transform: translateY(calc(var(--rise-distance) * 0.8)) translateX(calc(var(--curve-amplitude) * 0.2));
+            70% {
+                opacity: 0.8;
+                transform: translateY(calc(var(--rise-distance) * 0.7)) translateX(calc(var(--curve-amplitude) * -0.3));
+            }
+            85% {
+                opacity: 0.4;
+                transform: translateY(calc(var(--rise-distance) * 0.85)) translateX(calc(var(--curve-amplitude) * 0.1));
             }
             100% {
                 transform: translateY(var(--rise-distance)) translateX(0);
@@ -725,8 +729,8 @@
                 if (sizeCategory < 0.33) {
                     // Small bubbles (33% chance)
                     size = 4 + Math.random() * 2; // 4-6px
-                    speedMultiplier = 0.6; // Rise 40% faster
-                    curveMultiplier = 0.5; // Less curve
+                    speedMultiplier = 0.5; // Rise 50% faster
+                    curveMultiplier = 0.4; // Minimal curve
                 } else if (sizeCategory < 0.67) {
                     // Medium bubbles (33% chance)
                     size = 7 + Math.random() * 3; // 7-9px
@@ -735,21 +739,21 @@
                 } else {
                     // Large bubbles (34% chance)
                     size = 10 + Math.random() * 4; // 10-14px
-                    speedMultiplier = 1.2; // Rise 20% slower
-                    curveMultiplier = 1.5; // More curve
+                    speedMultiplier = 1.3; // Rise 30% slower
+                    curveMultiplier = 1.8; // Maximum curve
                 }
                 
                 const left = Math.random() * 80 + 10; // Better distribution across container
                 
                 const heightRatio = liquidHeightPx / containerHeight;
-                // Rise duration with pronounced size differences
-                const baseDuration = 2.5; // Shorter base for more dynamic feel
-                const duration = baseDuration * speedMultiplier * (0.8 + heightRatio * 0.2 + Math.random() * 0.1);
-                const finalDuration = Math.max(1.5, Math.min(4.0, duration));
+                // Rise duration with more pronounced size differences
+                const baseDuration = 2.8; // Slightly longer base for smoother motion
+                const duration = baseDuration * speedMultiplier * (0.7 + heightRatio * 0.3 + Math.random() * 0.15);
+                const finalDuration = Math.max(1.2, Math.min(5.0, duration));
                 
-                // Curve amplitude with pronounced size differences
-                const baseCurve = 3; // Base curve amplitude
-                const curveAmplitude = baseCurve * curveMultiplier; // 1.5-4.5px curve based on size
+                // Curve amplitude with extended natural curves
+                const baseCurve = 8; // Extended base curve amplitude
+                const curveAmplitude = baseCurve * curveMultiplier; // 3.2-14.4px curve based on size
                 
                 bubble.style.width = size + 'px';
                 bubble.style.height = size + 'px';
