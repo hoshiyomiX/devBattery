@@ -42,23 +42,29 @@
         
         @keyframes bubbleRise {
             0% {
-                transform: translateY(0) scale(0.2);
+                transform: translateY(0) translateX(0);
                 opacity: 0;
             }
-            10% {
-                opacity: 0.8;
-                transform: translateY(calc(var(--rise-distance) * 0.1)) scale(0.6);
+            5% {
+                opacity: 0.6;
+                transform: translateY(calc(var(--rise-distance) * 0.05)) translateX(2px);
             }
-            50% {
+            20% {
                 opacity: 1;
-                transform: translateY(calc(var(--rise-distance) * 0.5)) scale(1);
+                transform: translateY(calc(var(--rise-distance) * 0.2)) translateX(-1px);
             }
-            90% {
-                opacity: 0.3;
-                transform: translateY(calc(var(--rise-distance) * 0.9)) scale(0.9);
+            40% {
+                transform: translateY(calc(var(--rise-distance) * 0.4)) translateX(3px);
+            }
+            60% {
+                transform: translateY(calc(var(--rise-distance) * 0.6)) translateX(-2px);
+            }
+            80% {
+                opacity: 0.5;
+                transform: translateY(calc(var(--rise-distance) * 0.8)) translateX(1px);
             }
             100% {
-                transform: translateY(var(--rise-distance)) scale(0.8);
+                transform: translateY(var(--rise-distance)) translateX(0);
                 opacity: 0;
             }
         }
@@ -354,7 +360,7 @@
             border-radius: 50%;
             pointer-events: none;
             box-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
-            animation: bubbleRise ease-out forwards;
+            animation: bubbleRise linear forwards;
             will-change: transform, opacity;
             transform: translateZ(0);
         }
@@ -713,15 +719,15 @@
                 bubble.className = 'bubble';
                 
                 // Natural size variation for realistic bubbles
-                const size = 3 + Math.random() * 6; // 3-9px
-                const left = Math.random() * 85 + 7.5; // Better distribution across container
+                const size = 4 + Math.random() * 5; // 4-9px for better visibility
+                const left = Math.random() * 80 + 10; // Better distribution across container
                 
                 const heightRatio = liquidHeightPx / containerHeight;
                 // Rise duration based on size (smaller bubbles rise faster) and liquid height
-                const sizeFactor = 1.0 - ((size - 3) / 6) * 0.3;
-                const baseDuration = 2.0 * sizeFactor;
-                const duration = baseDuration * (0.7 + heightRatio * 0.3 + Math.random() * 0.2);
-                const finalDuration = Math.max(1.5, Math.min(2.8, duration));
+                const sizeFactor = 1.0 - ((size - 4) / 5) * 0.25;
+                const baseDuration = 2.5 * sizeFactor;
+                const duration = baseDuration * (0.8 + heightRatio * 0.2 + Math.random() * 0.15);
+                const finalDuration = Math.max(2.0, Math.min(3.2, duration));
                 
                 bubble.style.width = size + 'px';
                 bubble.style.height = size + 'px';
@@ -729,13 +735,13 @@
                 bubble.style.bottom = '0';
                 bubble.style.setProperty('--rise-distance', -riseDistance + 'px');
                 bubble.style.animationDuration = finalDuration + 's';
-                bubble.style.animationDelay = (Math.random() * 0.2) + 's'; // Natural stagger
+                bubble.style.animationDelay = (Math.random() * 0.15) + 's'; // Reduced stagger for smoother flow
                 
                 container.appendChild(bubble);
                 bubbleCount++;
                 
                 // Ensure bubble cleanup to prevent accumulation
-                const cleanupTime = (finalDuration + 0.2) * 1000;
+                const cleanupTime = (finalDuration + 0.3) * 1000;
                 setTimeout(() => {
                     if (bubble && bubble.parentNode) {
                         bubble.parentNode.removeChild(bubble);

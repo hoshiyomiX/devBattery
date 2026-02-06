@@ -11,49 +11,13 @@
     
     let fluidSim = null;
     let useWebGL = true;
-    let bubbleSpawnInterval = null;
 
-    /**
-     * Compute how many bubbles to spawn based on current_now (mA)
-     * and how many bubbles are currently on screen (currently).
-     * Rules:
-     * - 1-1000 mA: spawnCount = max(0, currently - current_now)
-     * - 1000-2000 mA: spawnCount = currently
-     * - >2000 mA: spawnCount = currently + current_now
-     */
-    function computeBubbleSpawn(current_now_ma, currently) {
-        if (!current_now_ma || current_now_ma <= 0) return 0;
-        if (current_now_ma <= 1000) {
-            return Math.max(0, currently - current_now_ma);
-        }
-        if (current_now_ma <= 2000) {
-            return currently;
-        }
-        // current_now_ma > 2000
-        return currently + current_now_ma;
-    }
-
-    // Helper to spawn a single bubble with existing visuals
-    function spawnBubble(container) {
-        if (container.children.length > 20) return;  // cap
-        const bubble = document.createElement('div');
-        bubble.className = 'bubble';
-        const size = Math.random() * 10 + 4;  // 4-14px - smaller for smoother motion
-        const left = Math.random() * 75 + 12.5;
-        // More natural duration variation based on size
-        const sizeFactor = 1.0 - ((size - 4) / 10) * 0.3; // smaller bubbles rise faster
-        const baseDuration = 2.8;
-        const duration = (baseDuration * sizeFactor) + (Math.random() * 0.8); // 2.1-3.6s
-        bubble.style.width = size + 'px';
-        bubble.style.height = size + 'px';
-        bubble.style.left = left + '%';
-        bubble.style.animationDuration = duration + 's';
-        bubble.style.animationDelay = (Math.random() * 0.2) + 's'; // slight delay for natural stagger
-        container.appendChild(bubble);
-        setTimeout(() => {
-            if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-        }, (duration + 0.2) * 1000);
-    }
+    // ===================================
+    // BUBBLE SPAWNING (DISABLED - handled by index.html)
+    // ===================================
+    
+    // All bubble spawning logic is now handled by the index.html system
+    // to avoid conflicts and ensure single bubble container
     
     // ===================================
     // Initialization
@@ -139,8 +103,10 @@
             updateCSSFallback(data);
         }
         
-        // RESTORE BUBBLES for charging animation
-        toggleBubbleSpawning(data.isCharging);
+        // BUBBLES handled by index.html system - call the index.html function
+        if (typeof toggleBubbleSpawning === 'function') {
+            toggleBubbleSpawning(data.isCharging);
+        }
     }
     
     function updateCSSFallback(data) {
@@ -155,43 +121,11 @@
     }
     
     // ===================================
-    // BUBBLE SPAWNING (RESTORED)
+    // BUBBLE SPAWNING (DISABLED - handled by index.html)
     // ===================================
     
-    function toggleBubbleSpawning(enable) {
-        // Spawn bubbles inside the liquid area to keep animation within the bar
-        // Previously this referenced a separate #bubbles container which caused
-        // bubbles to render above other UI elements. Now we render inside the
-        // liquid-container so the animation stays visually inside the bar.
-        const container = document.getElementById('liquid-container');
-        if (!container) return;
-        
-        if (enable) {
-            if (!bubbleSpawnInterval) {
-                bubbleSpawnInterval = setInterval(() => {
-                    if (document.visibilityState === 'visible') {
-                        spawnRandomBubble(container);
-                    }
-                }, 450);  // Smoother spawn rate - less frequent but more natural
-            }
-        } else {
-            if (bubbleSpawnInterval) {
-                clearInterval(bubbleSpawnInterval);
-                bubbleSpawnInterval = null;
-            }
-            container.innerHTML = '';
-        }
-    }
-    
-    function spawnRandomBubble(container) {
-        // Spawn multiple bubbles based on current and on-screen count
-        if (container.children.length > 20) return;  // cap
-        const currentMA = (window.batteryManager && window.batteryManager.lastData && window.batteryManager.lastData.currentMA) ? window.batteryManager.lastData.currentMA : 0;
-        const toSpawn = Math.max(0, computeBubbleSpawn(currentMA, container.children.length));
-        for (let i = 0; i < toSpawn; i++) {
-            spawnBubble(container);
-        }
-    }
+    // Bubble spawning is now handled entirely by the index.html system
+    // to avoid conflicts and duplicate bubble containers
     
     // ===================================
     // Event Listeners
