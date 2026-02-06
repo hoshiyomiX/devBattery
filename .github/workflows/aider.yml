@@ -1,97 +1,129 @@
-name: AI Agent (Gemini 2.5 Flash)
+name: Aider + Gemini AI Coding Agent
 
 on:
+  workflow_dispatch:    # Bisa di-trigger manual dari Actions tab
+    inputs:
+      task:
+        description: 'Deskripsi tugas untuk Aider (contoh: "fix bug di login page" atau "tambah dark mode toggle")'
+        required: true
+        type: string
+      branch:
+        description: 'Branch untuk dikerjakan (default: create new branch)'
+        required: false
+        default: ''
+      model:
+        description: 'Gemini model (gemini/gemini-2.5-pro atau gemini/gemini-2.5-flash)'
+        required: false
+        default: 'gemini/gemini-2.5-flash'
+
+  # (Opsional) Trigger dari comment di issue/PR
   issue_comment:
     types: [created]
-  issues:
-    types: [opened]
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: write          # Penting agar bisa commit & push
+  pull-requests: write     # Bisa buat PR
+  issues: write            # Bisa comment di issue
 
 jobs:
-  ai-agent:
+  aider-agent:
+    if: 
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/aider'))
+    
     runs-on: ubuntu-latest
-    timeout-minutes: 60
-
-    if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/ai') && 
-       (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'OWNER')) ||
-      (github.event_name == 'issues' && contains(github.event.issue.body, '/ai'))
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0     # Penting agar git history lengkap untuk Aider
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
-      - run: pip install --upgrade aider-chat
-
-      - run: |
-          git config --global user.name "AI Agent"
-          git config --global user.email "ai-agent[bot]@users.noreply.github.com"
-
-      - name: Cleanup old ai/fix-* branches
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Aider
         run: |
-          for b in $(git ls-remote --heads origin "refs/heads/ai/fix-*" | awk '{print $2}' | sed 's|refs/heads/||'); do
-            echo "Deleting old branch $b"
-            git push origin --delete "$b" || true
-          done
+          python -m pip install --upgrade pip
+          pip install aider-chat
 
-      - name: Determine prompt
-        id: get_prompt
-        run: |
-          if [ "${{ github.event_name }}" = "issue_comment" ]; then
-            echo "prompt=${{ github.event.comment.body }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "prompt=${{ github.event.issue.body }}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Run Aider (Gemini 2.5 Flash)
+      - name: Configure Gemini API Key
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GH_TOKEN: ${{ github.token }}
-          PROMPT: ${{ steps.get_prompt.outputs.prompt }}
         run: |
-          set -euo pipefail
+          echo "export GEMINI_API_KEY=$GEMINI_API_KEY" >> $GITHUB_ENV
 
-          BRANCH="ai/fix-$(date +%s)"
-          git checkout -b "$BRANCH"
-
-          CLEAN_PROMPT=$(echo "$PROMPT" | sed 's|^/ai\s*||' | xargs)
-
-          aider \
-            --model flash \
-            --message "$CLEAN_PROMPT" \
-            --commit-prompt "Generate concise commit message in English, start with relevant emoji" \
-            --yes \
-            --no-show-model-warnings
-
-          # Pastikan ada perubahan
-          if git diff --quiet origin/main...HEAD; then
-            echo "No changes → skip PR"
-            exit 0
+      - name: Determine task and branch
+        id: prepare
+        run: |
+          if [ "${{ github.event_name }}" = "issue_comment" ]; then
+            TASK=\( (echo " \){{ github.event.comment.body }}" | sed -n 's/.*\/aider \(.*\)/\1/p' | xargs)
+            if [ -z "$TASK" ]; then
+              echo "No task found after /aider command → skipping"
+              exit 1
+            fi
+            BRANCH="aider-gemini-${{ github.run_id }}"
+            echo "Comment trigger detected. Task: $TASK"
+          else
+            TASK="${{ inputs.task }}"
+            BRANCH="${{ inputs.branch }}"
+            if [ -z "$BRANCH" ]; then
+              BRANCH="aider-gemini-${{ github.run_id }}"
+            fi
           fi
 
-          git add . || true
-          git commit --amend --no-edit || git commit -m "🤖 Gemini auto-fix"
+          MODEL="${{ inputs.model || 'gemini/gemini-2.5-flash' }}"
 
-          git push origin "$BRANCH" --force-with-lease
+          echo "task=$TASK" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "model=$MODEL" >> $GITHUB_OUTPUT
 
-          TITLE="🤖 Gemini 2.5 Flash fix: ${CLEAN_PROMPT:0:100}..."
-          TITLE=$(echo "$TITLE" | tr '\n' ' ' | xargs)
+      - name: Run Aider AI Agent
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          git config --global user.name "Aider-Gemini Agent"
+          git config --global user.email "aider-gemini@github-actions"
 
-          gh pr create \
-            --title "$TITLE" \
-            --body "## 🤖 Auto-generated by Gemini 2.5 Flash\n\nPrompt:\n\`\`\`\n$CLEAN_PROMPT\n\`\`\`\n\nReview carefully before merging!" \
-            --base main \
-            --head "$BRANCH"
+          # Buat & checkout branch baru
+          git checkout -b ${{ steps.prepare.outputs.branch }} || git checkout ${{ steps.prepare.outputs.branch }}
+
+          # Jalankan Aider (non-interactive, single shot)
+          aider \
+            --model ${{ steps.prepare.outputs.model }} \
+            --message "${{ steps.prepare.outputs.task }}" \
+            --yes \
+            --auto-commits \
+            --no-pretty  \
+            --no-stream
+
+      - name: Create Pull Request (jika ada perubahan)
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Aider + Gemini: ${{ steps.prepare.outputs.task }}"
+          title: "AI Fix/Feature: ${{ steps.prepare.outputs.task }}"
+          body: |
+            **Task:** ${{ steps.prepare.outputs.task }}
+            
+            Generated by Aider + Gemini ${{ steps.prepare.outputs.model }} via GitHub Actions
+            
+            - Model: ${{ steps.prepare.outputs.model }}
+            - Workflow run: \( {{ github.server_url }}/ \){{ github.repository }}/actions/runs/${{ github.run_id }}
+          branch: ${{ steps.prepare.outputs.branch }}
+          delete-branch: true
+          labels: ai-generated, aider, gemini
+
+      - name: Comment result on issue/PR (jika dipicu dari comment)
+        if: github.event_name == 'issue_comment'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Aider + Gemini sudah selesai memproses tugas:
+            > ${{ steps.prepare.outputs.task }}
+
+            Cek PR yang dibuat: \( {{ github.server_url }}/ \){{ github.repository }}/pulls?q=is%3Apr+head%3A${{ steps.prepare.outputs.branch }}
