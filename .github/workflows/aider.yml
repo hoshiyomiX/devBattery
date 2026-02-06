@@ -81,8 +81,10 @@ jobs:
 
             if [[ "$comment" == */aider* ]]; then
               TASK="${comment#*/aider}"
+              
               # Trim leading whitespace
               TASK="\( {TASK#" \){TASK%%[![:space:]]*}"}"
+              
               # Trim trailing whitespace
               TASK="\( {TASK%" \){TASK##*[![:space:]]}"}"
 
@@ -98,6 +100,7 @@ jobs:
             BRANCH="aider-gemini-${{ github.run_id }}"
             echo "Comment trigger detected. Task: '$TASK'"
           else
+            # workflow_dispatch
             TASK="${{ inputs.task }}"
             BRANCH="${{ inputs.branch }}"
             if [ -z "$BRANCH" ]; then
