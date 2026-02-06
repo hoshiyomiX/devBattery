@@ -42,16 +42,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python & cache pip
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
+          # No cache: 'pip' here — we handle it manually below
+
+      - name: Cache pip wheels & http cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            \~/.cache/pip
+            \~/.cache/pip-http
+          key: \( {{ runner.os }}-pip- \){{ hashFiles('**/aider-version.txt') || github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install Aider
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install aider-chat
+          pip install --no-cache-dir aider-chat   # --no-cache-dir optional if you want to force fresh sometimes
+
+      # Optional: Create a marker file so cache key changes when Aider version updates
+      - name: Record Aider version for cache key
+        run: |
+          pip show aider-chat | grep '^Version:' > aider-version.txt || echo "unknown" > aider-version.txt
           
       - name: Configure Gemini API Key
         env:
