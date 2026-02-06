@@ -42,29 +42,23 @@
         
         @keyframes bubbleRise {
             0% {
-                transform: translateY(0) translateX(0) scale(0.3);
+                transform: translateY(0) scale(0.2);
                 opacity: 0;
             }
-            8% {
-                opacity: 0.9;
-                transform: translateY(calc(var(--rise-distance) * 0.08)) translateX(calc(var(--sway-amp) * 0.3)) scale(0.85);
-            }
-            25% {
-                transform: translateY(calc(var(--rise-distance) * 0.25)) translateX(var(--sway-amp)) scale(1);
+            10% {
+                opacity: 0.8;
+                transform: translateY(calc(var(--rise-distance) * 0.1)) scale(0.6);
             }
             50% {
                 opacity: 1;
-                transform: translateY(calc(var(--rise-distance) * 0.5)) translateX(calc(var(--sway-amp) * -0.5)) scale(1);
+                transform: translateY(calc(var(--rise-distance) * 0.5)) scale(1);
             }
-            75% {
-                transform: translateY(calc(var(--rise-distance) * 0.75)) translateX(calc(var(--sway-amp) * 0.4)) scale(0.95);
-            }
-            92% {
-                opacity: 0.4;
-                transform: translateY(calc(var(--rise-distance) * 0.92)) translateX(calc(var(--sway-amp) * -0.2)) scale(0.9);
+            90% {
+                opacity: 0.3;
+                transform: translateY(calc(var(--rise-distance) * 0.9)) scale(0.9);
             }
             100% {
-                transform: translateY(var(--rise-distance)) translateX(0) scale(0.85);
+                transform: translateY(var(--rise-distance)) scale(0.8);
                 opacity: 0;
             }
         }
@@ -356,11 +350,11 @@
             width: 10px;
             height: 10px;
             opacity: 0;
-            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 40%, rgba(255, 255, 255, 0.3) 100%);
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 40%, rgba(255, 255, 255, 0.2) 100%);
             border-radius: 50%;
             pointer-events: none;
-            box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
-            animation: bubbleRise cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            box-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
+            animation: bubbleRise ease-out forwards;
             will-change: transform, opacity;
             transform: translateZ(0);
         }
@@ -729,17 +723,13 @@
                 const duration = baseDuration * (0.7 + heightRatio * 0.3 + Math.random() * 0.2);
                 const finalDuration = Math.max(1.5, Math.min(2.8, duration));
                 
-                // Natural horizontal sway for curved rise path
-                const swayAmplitude = (Math.random() * 20 + 8) * (Math.random() < 0.5 ? 1 : -1);
-                
                 bubble.style.width = size + 'px';
                 bubble.style.height = size + 'px';
                 bubble.style.left = left + '%';
                 bubble.style.bottom = '0';
                 bubble.style.setProperty('--rise-distance', -riseDistance + 'px');
-                bubble.style.setProperty('--sway-amp', swayAmplitude + 'px');
                 bubble.style.animationDuration = finalDuration + 's';
-                bubble.style.animationDelay = (Math.random() * 0.15) + 's';
+                bubble.style.animationDelay = (Math.random() * 0.2) + 's'; // Natural stagger
                 
                 container.appendChild(bubble);
                 bubbleCount++;
