@@ -708,6 +708,14 @@
         
         // Compute bubbles to spawn based on current MA (simulating heating)
         function computeBubbleSpawn(current_now_ma, currently) {
+            // If manual simulation is enabled, spawn bubbles regardless of current
+            if (isBubbleSimulationEnabled) {
+                // Spawn 1-3 bubbles for visual effect
+                const spawnCount = 1 + Math.floor(Math.random() * 3);
+                const availableSlots = MAX_BUBBLES - currently;
+                return Math.min(spawnCount, availableSlots);
+            }
+            
             // If discharging, stop spawning bubbles
             if (current_now_ma <= 0) {
                 return 0;
@@ -800,11 +808,9 @@
         function toggleBubbleSpawning(active) {
             if (active && !bubbleSpawnInterval) {
                 bubbleSpawnInterval = setInterval(spawnRandomBubble, 600); // Optimal interval for smooth flow
-                isCharging = true;
             } else if (!active && bubbleSpawnInterval) {
                 clearInterval(bubbleSpawnInterval);
                 bubbleSpawnInterval = null;
-                isCharging = false;
                 document.querySelectorAll('.bubble').forEach(b => b.remove());
                 bubbleCount = 0;
             }
@@ -998,6 +1004,9 @@
                 } else {
                     toggleBubbleSpawning(chargingActive);
                 }
+                
+                // Update isCharging for other logic that depends on it
+                isCharging = isBubbleSimulationEnabled || chargingActive;
                 
                 const isDraining = lastStatus.toLowerCase() === 'discharging' || lastStatus.toLowerCase() === 'not charging';
                 toggleDrainLeak(isDraining);
