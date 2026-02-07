@@ -740,8 +740,8 @@
         function computeBubbleSpawn(current_now_ma, currently) {
             // If manual simulation is enabled, spawn bubbles regardless of current
             if (isBubbleSimulationEnabled) {
-                // Reduced spawn count for performance
-                const spawnCount = 1 + Math.floor(Math.random() * 2);
+                // More randomized spawn count for natural timing
+                const spawnCount = Math.random() < 0.7 ? 1 : (Math.random() < 0.9 ? 2 : 0);
                 const availableSlots = MAX_BUBBLES - currently;
                 return Math.min(spawnCount, availableSlots);
             }
@@ -752,8 +752,9 @@
             }
             
             // If charging, spawn bubbles based on current intensity (reduced for performance)
-            // 1 bubble per 800mA (less frequent spawning)
-            const spawnCount = Math.floor(current_now_ma / 800);
+            // 1 bubble per 800mA (less frequent spawning) with randomization
+            const baseSpawnCount = Math.floor(current_now_ma / 800);
+            const spawnCount = baseSpawnCount > 0 ? (baseSpawnCount + (Math.random() < 0.3 ? 1 : 0)) : 0;
             
             // Ensure we don't exceed max bubbles
             const availableSlots = MAX_BUBBLES - currently;
@@ -774,7 +775,7 @@
             const liquidHeightPx = liquid.offsetHeight;
             if (liquidHeightPx <= 0) return;
             
-            const riseDistance = liquidHeightPx;
+            const riseDistance = liquidHeightPx - 6; // Bubbles fade 6px below liquid surface
             
             for (let i = 0; i < toSpawn; i++) {
                 if (bubbleCount >= MAX_BUBBLES) break;
@@ -823,7 +824,7 @@
                 bubble.style.setProperty('--rise-distance', -riseDistance + 'px');
                 bubble.style.setProperty('--curve-amplitude', curveAmplitude + 'px');
                 bubble.style.animationDuration = finalDuration + 's';
-                bubble.style.animationDelay = (Math.random() * 0.1) + 's'; // Further reduced stagger
+                bubble.style.animationDelay = (Math.random() * 0.5) + 's'; // Increased random delay up to 0.5s
                 
                 container.appendChild(bubble);
                 bubbleCount++;
