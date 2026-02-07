@@ -357,7 +357,7 @@
             opacity: 0.9;
             font-weight: 600;
             letter-spacing: 0.5px;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 20px rgba(208, 188, 255, 0.3);
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
         }
         
         .tile-large .tile-value {
@@ -365,14 +365,13 @@
             color: var(--md-sys-color-on-primary-container);
             font-weight: 300;
             letter-spacing: -3px;
-            text-shadow: 0 3px 16px rgba(0, 0, 0, 0.9), 0 0 30px rgba(208, 188, 255, 0.4);
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
         }
         
         .tile-large .tile-unit {
             font-size: 32px;
             color: var(--md-sys-color-on-primary-container);
             opacity: 0.8;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7), 0 0 15px rgba(208, 188, 255, 0.2);
         }
         
         .liquid-container {
@@ -449,8 +448,8 @@
             animation: slideInBottom 0.6s var(--md-motion-emphasized-decel) 0.3s both;
             z-index: 10;
             color: var(--md-sys-color-on-primary-container);
-            opacity: 0.95;
-            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 20px rgba(208, 188, 255, 0.3);
+            opacity: 0.9;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
         }
         
         .action-buttons {
@@ -673,10 +672,13 @@
         const SPLASH_TIMING = 1045;
         const LANDING_OFFSET = 15;
         const containerHeight = 200;
-        let MAX_BUBBLES = 12; // Fixed limit for universal performance
+        let MAX_BUBBLES = 15; // Dynamic limit for performance
         
         // Manual bubble simulation toggle state
         let isBubbleSimulationEnabled = false;
+        let performanceMode = 'normal'; // 'normal', 'reduced', 'minimal'
+        let frameTimeHistory = [];
+        let lastFrameTime = performance.now();
         
         function applyTheme(theme) {
             currentTheme = theme;
@@ -738,14 +740,8 @@
         function computeBubbleSpawn(current_now_ma, currently) {
             // If manual simulation is enabled, spawn bubbles regardless of current
             if (isBubbleSimulationEnabled) {
-                // Highly randomized spawn count to prevent identical timing
-                const rand = Math.random();
-                let spawnCount = 0;
-                if (rand < 0.4) spawnCount = 1;
-                else if (rand < 0.7) spawnCount = 2;
-                else if (rand < 0.85) spawnCount = 3;
-                else spawnCount = 0;
-                
+                // More randomized spawn count for natural timing
+                const spawnCount = Math.random() < 0.7 ? 1 : (Math.random() < 0.9 ? 2 : 0);
                 const availableSlots = MAX_BUBBLES - currently;
                 return Math.min(spawnCount, availableSlots);
             }
@@ -755,19 +751,10 @@
                 return 0;
             }
             
-            // If charging, spawn bubbles based on current intensity with enhanced randomization
+            // If charging, spawn bubbles based on current intensity (reduced for performance)
+            // 1 bubble per 800mA (less frequent spawning) with randomization
             const baseSpawnCount = Math.floor(current_now_ma / 800);
-            const rand = Math.random();
-            let spawnCount = baseSpawnCount;
-            
-            // Add randomization to prevent identical spawning patterns
-            if (rand < 0.2) spawnCount += 2;
-            else if (rand < 0.4) spawnCount += 1;
-            else if (rand < 0.6) spawnCount += 0;
-            else if (rand < 0.8) spawnCount -= 1;
-            else spawnCount -= 2;
-            
-            spawnCount = Math.max(0, spawnCount);
+            const spawnCount = baseSpawnCount > 0 ? (baseSpawnCount + (Math.random() < 0.3 ? 1 : 0)) : 0;
             
             // Ensure we don't exceed max bubbles
             const availableSlots = MAX_BUBBLES - currently;
@@ -779,8 +766,9 @@
             const liquid = document.getElementById('liquid');
             const toSpawn = Math.max(0, computeBubbleSpawn(currentMA, bubbleCount));
             
-            // Fixed performance limit
-            if (bubbleCount >= MAX_BUBBLES) return;
+            // Additional performance check
+            if (performanceMode === 'minimal' && bubbleCount > 3) return;
+            if (performanceMode === 'reduced' && bubbleCount > 6) return;
             
             const containerHeight = container.offsetHeight;
             const containerWidth = container.offsetWidth;
@@ -836,7 +824,7 @@
                 bubble.style.setProperty('--rise-distance', -riseDistance + 'px');
                 bubble.style.setProperty('--curve-amplitude', curveAmplitude + 'px');
                 bubble.style.animationDuration = finalDuration + 's';
-                bubble.style.animationDelay = (Math.random() * 1.2) + 's'; // Enhanced random delay up to 1.2s for more variety
+                bubble.style.animationDelay = (Math.random() * 0.5) + 's'; // Increased random delay up to 0.5s
                 
                 container.appendChild(bubble);
                 bubbleCount++;
@@ -852,18 +840,50 @@
             }
         }
         
-        // Performance monitoring removed for universal compatibility
+        function checkPerformance() {
+            const now = performance.now();
+            const frameTime = now - lastFrameTime;
+            lastFrameTime = now;
+            
+            frameTimeHistory.push(frameTime);
+            if (frameTimeHistory.length > 30) frameTimeHistory.shift();
+            
+            if (frameTimeHistory.length >= 10) {
+                const avgFrameTime = frameTimeHistory.reduce((a, b) => a + b, 0) / frameTimeHistory.length;
+                
+                if (avgFrameTime > 50 && performanceMode !== 'minimal') {
+                    // Poor performance detected
+                    performanceMode = 'minimal';
+                    MAX_BUBBLES = 8;
+                    console.log('[Performance] Switching to minimal mode');
+                } else if (avgFrameTime > 30 && performanceMode === 'normal') {
+                    // Moderate performance issues
+                    performanceMode = 'reduced';
+                    MAX_BUBBLES = 12;
+                    console.log('[Performance] Switching to reduced mode');
+                } else if (avgFrameTime < 20 && performanceMode !== 'normal') {
+                    // Good performance
+                    performanceMode = 'normal';
+                    MAX_BUBBLES = 15;
+                    console.log('[Performance] Switching to normal mode');
+                }
+            }
+        }
         
         function toggleBubbleSpawning(active) {
             if (active && !bubbleSpawnInterval) {
                 bubbleSpawnInterval = setInterval(() => {
+                    checkPerformance();
                     spawnRandomBubble();
-                }, 600); // Optimized interval for universal performance
+                }, 800); // Slower interval for better performance
             } else if (!active && bubbleSpawnInterval) {
                 clearInterval(bubbleSpawnInterval);
                 bubbleSpawnInterval = null;
                 document.querySelectorAll('.bubble').forEach(b => b.remove());
                 bubbleCount = 0;
+                frameTimeHistory = [];
+                performanceMode = 'normal';
+                MAX_BUBBLES = 15;
             }
         }
         
@@ -939,22 +959,50 @@
         }
         
         function getBatteryColor(percentage) {
-            // Smooth gradient from red (0%) to yellow (50%) to green (100%)
-            let r, g, b;
+            const stages = [
+                { percent: 0, color: [211, 47, 47] },
+                { percent: 10, color: [211, 47, 47] },
+                { percent: 10, color: [244, 67, 54] },
+                { percent: 20, color: [244, 67, 54] },
+                { percent: 20, color: [255, 87, 34] },
+                { percent: 30, color: [255, 87, 34] },
+                { percent: 30, color: [255, 152, 0] },
+                { percent: 40, color: [255, 152, 0] },
+                { percent: 40, color: [255, 193, 7] },
+                { percent: 50, color: [255, 193, 7] },
+                { percent: 50, color: [255, 235, 59] },
+                { percent: 60, color: [255, 235, 59] },
+                { percent: 60, color: [205, 220, 57] },
+                { percent: 70, color: [205, 220, 57] },
+                { percent: 70, color: [139, 195, 74] },
+                { percent: 80, color: [139, 195, 74] },
+                { percent: 80, color: [102, 187, 106] },
+                { percent: 90, color: [102, 187, 106] },
+                { percent: 90, color: [76, 175, 80] },
+                { percent: 100, color: [76, 175, 80] }
+            ];
             
-            if (percentage <= 50) {
-                // Red to Yellow transition (0% to 50%)
-                const ratio = percentage / 50;
-                r = 255; // Red stays at max
-                g = Math.floor(255 * ratio); // Green increases from 0 to 255
-                b = 0; // Blue stays at 0
-            } else {
-                // Yellow to Green transition (50% to 100%)
-                const ratio = (percentage - 50) / 50;
-                r = Math.floor(255 * (1 - ratio)); // Red decreases from 255 to 0
-                g = 255; // Green stays at max
-                b = 0; // Blue stays at 0
+            let lowerStage = stages[0];
+            let upperStage = stages[stages.length - 1];
+            
+            for (let i = 0; i < stages.length - 1; i++) {
+                if (percentage >= stages[i].percent && percentage <= stages[i + 1].percent) {
+                    lowerStage = stages[i];
+                    upperStage = stages[i + 1];
+                    break;
+                }
             }
+            
+            const range = upperStage.percent - lowerStage.percent;
+            let ratio = 0;
+            
+            if (range > 0) {
+                ratio = (percentage - lowerStage.percent) / range;
+            }
+            
+            const r = Math.floor(lowerStage.color[0] + (upperStage.color[0] - lowerStage.color[0]) * ratio);
+            const g = Math.floor(lowerStage.color[1] + (upperStage.color[1] - lowerStage.color[1]) * ratio);
+            const b = Math.floor(lowerStage.color[2] + (upperStage.color[2] - lowerStage.color[2]) * ratio);
             
             return `rgba(${r}, ${g}, ${b}, 0.9)`;
         }
