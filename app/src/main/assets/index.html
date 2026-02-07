@@ -90,6 +90,51 @@
                 opacity: 0;
             }
         }
+            5% {
+                opacity: 0.4;
+                transform: translateY(calc(var(--rise-distance) * 0.05)) translateX(calc(var(--curve-amplitude) * 0.2)) scale(0.9);
+            }
+            15% {
+                opacity: 0.8;
+                transform: translateY(calc(var(--rise-distance) * 0.15)) translateX(calc(var(--curve-amplitude) * 0.6)) scale(1);
+            }
+            25% {
+                opacity: 1;
+                transform: translateY(calc(var(--rise-distance) * 0.25)) translateX(calc(var(--curve-amplitude) * 0.95)) scale(1);
+            }
+            35% {
+                opacity: 1;
+                transform: translateY(calc(var(--rise-distance) * 0.35)) translateX(calc(var(--curve-amplitude) * 0.8)) scale(1);
+            }
+            45% {
+                opacity: 0.95;
+                transform: translateY(calc(var(--rise-distance) * 0.45)) translateX(calc(var(--curve-amplitude) * 0.4)) scale(0.95);
+            }
+            55% {
+                opacity: 0.9;
+                transform: translateY(calc(var(--rise-distance) * 0.55)) translateX(calc(var(--curve-amplitude) * -0.1)) scale(0.9);
+            }
+            65% {
+                opacity: 0.8;
+                transform: translateY(calc(var(--rise-distance) * 0.65)) translateX(calc(var(--curve-amplitude) * -0.5)) scale(0.85);
+            }
+            75% {
+                opacity: 0.6;
+                transform: translateY(calc(var(--rise-distance) * 0.75)) translateX(calc(var(--curve-amplitude) * -0.7)) scale(0.8);
+            }
+            85% {
+                opacity: 0.3;
+                transform: translateY(calc(var(--rise-distance) * 0.85)) translateX(calc(var(--curve-amplitude) * -0.5)) scale(0.7);
+            }
+            95% {
+                opacity: 0.1;
+                transform: translateY(calc(var(--rise-distance) * 0.95)) translateX(calc(var(--curve-amplitude) * -0.2)) scale(0.6);
+            }
+            100% {
+                transform: translateY(var(--rise-distance)) translateX(0) scale(0.5);
+                opacity: 0;
+            }
+        }
             10% {
                 opacity: 0.6;
                 transform: translateY(calc(var(--rise-distance) * 0.1)) translateX(calc(var(--curve-amplitude) * 0.3)) scale(1);
@@ -390,15 +435,15 @@
         
         .tile-large {
             grid-column: span 2;
-            background: linear-gradient(135deg, var(--md-sys-color-primary-container) 0%, var(--md-sys-color-tertiary-container) 100%);
+            background: var(--md-sys-color-surface-container-high);
             padding: 28px;
             min-height: 200px;
-            box-shadow: 0 8px 24px rgba(79, 55, 139, 0.4);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         }
         
         .tile-large .tile-label {
             font-size: 18px;
-            color: var(--md-sys-color-on-primary-container);
+            color: #FFFFFF;
             opacity: 0.9;
             font-weight: 600;
             letter-spacing: 0.5px;
@@ -407,7 +452,7 @@
         
         .tile-large .tile-value {
             font-size: 72px;
-            color: var(--md-sys-color-on-primary-container);
+            color: #FFFFFF;
             font-weight: 300;
             letter-spacing: -3px;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -415,7 +460,7 @@
         
         .tile-large .tile-unit {
             font-size: 32px;
-            color: var(--md-sys-color-on-primary-container);
+            color: #FFFFFF;
             opacity: 0.8;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
@@ -493,7 +538,7 @@
             transition: all 0.4s var(--md-motion-spring);
             animation: slideInBottom 0.6s var(--md-motion-emphasized-decel) 0.3s both;
             z-index: 10;
-            color: var(--md-sys-color-on-primary-container);
+            color: #FFFFFF;
             opacity: 0.9;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
