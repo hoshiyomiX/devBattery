@@ -45,6 +45,51 @@
                 transform: translateY(0) translateX(0) scale(0.8);
                 opacity: 0;
             }
+            5% {
+                opacity: 0.4;
+                transform: translateY(calc(var(--rise-distance) * 0.05)) translateX(calc(var(--curve-amplitude) * 0.2)) scale(0.9);
+            }
+            15% {
+                opacity: 0.8;
+                transform: translateY(calc(var(--rise-distance) * 0.15)) translateX(calc(var(--curve-amplitude) * 0.6)) scale(1);
+            }
+            25% {
+                opacity: 1;
+                transform: translateY(calc(var(--rise-distance) * 0.25)) translateX(calc(var(--curve-amplitude) * 0.95)) scale(1);
+            }
+            35% {
+                opacity: 1;
+                transform: translateY(calc(var(--rise-distance) * 0.35)) translateX(calc(var(--curve-amplitude) * 0.8)) scale(1);
+            }
+            45% {
+                opacity: 0.95;
+                transform: translateY(calc(var(--rise-distance) * 0.45)) translateX(calc(var(--curve-amplitude) * 0.4)) scale(0.95);
+            }
+            55% {
+                opacity: 0.9;
+                transform: translateY(calc(var(--rise-distance) * 0.55)) translateX(calc(var(--curve-amplitude) * -0.1)) scale(0.9);
+            }
+            65% {
+                opacity: 0.8;
+                transform: translateY(calc(var(--rise-distance) * 0.65)) translateX(calc(var(--curve-amplitude) * -0.5)) scale(0.85);
+            }
+            75% {
+                opacity: 0.6;
+                transform: translateY(calc(var(--rise-distance) * 0.75)) translateX(calc(var(--curve-amplitude) * -0.7)) scale(0.8);
+            }
+            85% {
+                opacity: 0.3;
+                transform: translateY(calc(var(--rise-distance) * 0.85)) translateX(calc(var(--curve-amplitude) * -0.5)) scale(0.7);
+            }
+            95% {
+                opacity: 0.1;
+                transform: translateY(calc(var(--rise-distance) * 0.95)) translateX(calc(var(--curve-amplitude) * -0.2)) scale(0.6);
+            }
+            100% {
+                transform: translateY(var(--rise-distance)) translateX(0) scale(0.5);
+                opacity: 0;
+            }
+        }
             10% {
                 opacity: 0.6;
                 transform: translateY(calc(var(--rise-distance) * 0.1)) translateX(calc(var(--curve-amplitude) * 0.3)) scale(1);
@@ -357,7 +402,7 @@
             opacity: 0.9;
             font-weight: 600;
             letter-spacing: 0.5px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
         
         .tile-large .tile-value {
@@ -365,13 +410,14 @@
             color: var(--md-sys-color-on-primary-container);
             font-weight: 300;
             letter-spacing: -3px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
         
         .tile-large .tile-unit {
             font-size: 32px;
             color: var(--md-sys-color-on-primary-container);
             opacity: 0.8;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
         
         .liquid-container {
@@ -449,7 +495,7 @@
             z-index: 10;
             color: var(--md-sys-color-on-primary-container);
             opacity: 0.9;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 2px 6px rgba(0, 0, 0, 0.6);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
         
         .action-buttons {
