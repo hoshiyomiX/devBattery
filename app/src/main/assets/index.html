@@ -357,7 +357,7 @@
             opacity: 0.9;
             font-weight: 600;
             letter-spacing: 0.5px;
-            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.5);
         }
         
         .tile-large .tile-value {
@@ -365,7 +365,7 @@
             color: var(--md-sys-color-on-primary-container);
             font-weight: 300;
             letter-spacing: -3px;
-            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.5);
         }
         
         .tile-large .tile-unit {
@@ -449,7 +449,7 @@
             z-index: 10;
             color: var(--md-sys-color-on-primary-container);
             opacity: 0.9;
-            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8), 0 2px 6px rgba(0, 0, 0, 0.6);
         }
         
         .action-buttons {
@@ -672,13 +672,11 @@
         const SPLASH_TIMING = 1045;
         const LANDING_OFFSET = 15;
         const containerHeight = 200;
-        let MAX_BUBBLES = 15; // Dynamic limit for performance
+        // Simplified bubble settings - no dynamic performance adjustment
+        const MAX_BUBBLES = 12; // Fixed limit for smooth performance
         
         // Manual bubble simulation toggle state
         let isBubbleSimulationEnabled = false;
-        let performanceMode = 'normal'; // 'normal', 'reduced', 'minimal'
-        let frameTimeHistory = [];
-        let lastFrameTime = performance.now();
         
         function applyTheme(theme) {
             currentTheme = theme;
@@ -766,16 +764,15 @@
             const liquid = document.getElementById('liquid');
             const toSpawn = Math.max(0, computeBubbleSpawn(currentMA, bubbleCount));
             
-            // Additional performance check
-            if (performanceMode === 'minimal' && bubbleCount > 3) return;
-            if (performanceMode === 'reduced' && bubbleCount > 6) return;
+            // Simple bubble count limit - no performance modes
+            if (bubbleCount >= MAX_BUBBLES) return;
             
             const containerHeight = container.offsetHeight;
             const containerWidth = container.offsetWidth;
             const liquidHeightPx = liquid.offsetHeight;
             if (liquidHeightPx <= 0) return;
             
-            const riseDistance = liquidHeightPx - 6; // Bubbles fade 6px below liquid surface
+            const riseDistance = liquidHeightPx - 2; // Bubbles fade 2px below liquid surface
             
             for (let i = 0; i < toSpawn; i++) {
                 if (bubbleCount >= MAX_BUBBLES) break;
@@ -824,7 +821,7 @@
                 bubble.style.setProperty('--rise-distance', -riseDistance + 'px');
                 bubble.style.setProperty('--curve-amplitude', curveAmplitude + 'px');
                 bubble.style.animationDuration = finalDuration + 's';
-                bubble.style.animationDelay = (Math.random() * 0.5) + 's'; // Increased random delay up to 0.5s
+                bubble.style.animationDelay = (Math.random() * 1.2 + 0.2) + 's'; // Random delay 0.2-1.4s for better spacing
                 
                 container.appendChild(bubble);
                 bubbleCount++;
@@ -840,50 +837,18 @@
             }
         }
         
-        function checkPerformance() {
-            const now = performance.now();
-            const frameTime = now - lastFrameTime;
-            lastFrameTime = now;
-            
-            frameTimeHistory.push(frameTime);
-            if (frameTimeHistory.length > 30) frameTimeHistory.shift();
-            
-            if (frameTimeHistory.length >= 10) {
-                const avgFrameTime = frameTimeHistory.reduce((a, b) => a + b, 0) / frameTimeHistory.length;
-                
-                if (avgFrameTime > 50 && performanceMode !== 'minimal') {
-                    // Poor performance detected
-                    performanceMode = 'minimal';
-                    MAX_BUBBLES = 8;
-                    console.log('[Performance] Switching to minimal mode');
-                } else if (avgFrameTime > 30 && performanceMode === 'normal') {
-                    // Moderate performance issues
-                    performanceMode = 'reduced';
-                    MAX_BUBBLES = 12;
-                    console.log('[Performance] Switching to reduced mode');
-                } else if (avgFrameTime < 20 && performanceMode !== 'normal') {
-                    // Good performance
-                    performanceMode = 'normal';
-                    MAX_BUBBLES = 15;
-                    console.log('[Performance] Switching to normal mode');
-                }
-            }
-        }
+
         
         function toggleBubbleSpawning(active) {
             if (active && !bubbleSpawnInterval) {
                 bubbleSpawnInterval = setInterval(() => {
-                    checkPerformance();
                     spawnRandomBubble();
-                }, 800); // Slower interval for better performance
+                }, 600); // Consistent interval for natural timing
             } else if (!active && bubbleSpawnInterval) {
                 clearInterval(bubbleSpawnInterval);
                 bubbleSpawnInterval = null;
                 document.querySelectorAll('.bubble').forEach(b => b.remove());
                 bubbleCount = 0;
-                frameTimeHistory = [];
-                performanceMode = 'normal';
-                MAX_BUBBLES = 15;
             }
         }
         
@@ -1014,8 +979,8 @@
             
             const color = getBatteryColor(percentage);
             liquid.style.background = `linear-gradient(180deg, 
-                ${getBatteryColor(Math.min(100, percentage + 12))} 0%, 
-                ${getBatteryColor(Math.min(100, percentage + 6))} 50%, 
+                ${getBatteryColor(Math.min(100, percentage + 8))} 0%, 
+                ${getBatteryColor(Math.min(100, percentage + 4))} 50%, 
                 ${color} 100%)`;
             
             // New bubbles will get the current liquid level as their target.
