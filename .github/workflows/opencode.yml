@@ -15,7 +15,7 @@ on:
 jobs:
   opencode:
     runs-on: ubuntu-latest
-    timeout-minutes: 30   # Turunkan kembali kalau speed naik
+    timeout-minutes: 40
 
     if: |
       (contains(github.event.comment.body, '/oc') || 
@@ -36,21 +36,25 @@ jobs:
 
       - name: Run OpenCode Agent
         uses: anomalyco/opencode/github@latest
-        env: {}  # Tetap kosong untuk free Zen
+        env: {}
         with:
-          model: opencode/big-pickle   # ← Coba ini dulu; kalau masih lambat ganti ke opencode/kimi-k2.5-free
-          agent: build
+          model: opencode/big-pickle   # atau opencode/kimi-k2.5-free kalau ingin coba lebih cepat/aware
+          # agent: build               # Optional: eksplisit set kalau default tidak jalan
           prompt: |
             {
               "temperature": 0.05,
-              "steps": 8,
+              "steps": 10,
               "reasoningEffort": "medium",
               "textVerbosity": "low",
               "top_p": 0.9
             }
-            You are a fast, precise, and reliable coding agent. 
-            <thinking>Think step-by-step VERY briefly (max 80–120 words total). Focus on key logic, edge cases, and plan only what is necessary.</thinking>
-            Double-check your plan for correctness before any changes.
-            Stick strictly to the provided files and user request — no assumptions, no invented functions/APIs.
-            If uncertain about behavior or requirements, state it clearly and stop.
-            Output ONLY the minimal necessary changes (diffs or full file if small) — ultra-concise, no extra chit-chat.
+            You are a careful and precise coding agent that ALWAYS considers side effects.
+            <thinking>Think step-by-step briefly (80–150 words max):
+            1. Understand the exact request and current code context.
+            2. Plan the minimal change.
+            3. Explicitly list potential side effects / regressions (UI breakage, event handlers, animations lain, performance, etc.).
+            4. Double-check if the fix impacts unrelated parts — if yes, suggest alternatives or warn.
+            If side effects likely and cannot be safely mitigated, STOP and comment asking for clarification instead of applying.
+            </thinking>
+            Only apply changes if side effects are minimal or fully mitigated.
+            Output ONLY the diff/patch + short summary of why safe (no verbose explanation outside <thinking>).
