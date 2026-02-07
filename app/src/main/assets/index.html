@@ -816,14 +816,17 @@
                 const curveVariation = 0.5 + Math.random() * 0.5;
                 const curveAmplitude = baseCurve * curveMultiplier * curveVariation;
                 
+                // Adjust rise distance to fade at liquid surface or slightly below
+                const adjustedRiseDistance = riseDistance - (2 + Math.random() * 2); // 2-4px below surface
+                
                 bubble.style.width = size + 'px';
                 bubble.style.height = size + 'px';
                 bubble.style.left = left + '%';
                 bubble.style.bottom = '0';
-                bubble.style.setProperty('--rise-distance', -riseDistance + 'px');
+                bubble.style.setProperty('--rise-distance', -adjustedRiseDistance + 'px');
                 bubble.style.setProperty('--curve-amplitude', curveAmplitude + 'px');
                 bubble.style.animationDuration = finalDuration + 's';
-                bubble.style.animationDelay = (Math.random() * 0.1) + 's'; // Further reduced stagger
+                bubble.style.animationDelay = (Math.random() * 1.5) + 's'; // More randomized spawn timing
                 
                 container.appendChild(bubble);
                 bubbleCount++;
