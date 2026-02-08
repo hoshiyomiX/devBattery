@@ -93,23 +93,23 @@
         
         @keyframes dropletFall {
             0% { 
-                transform: translate3d(0, 0, 0) scaleY(0.9) scaleX(1.1);
-                opacity: 0.9;
+                transform: translate3d(0, 0, 0);
+                opacity: 0.95;
             }
             25% {
-                transform: translate3d(0, calc(var(--fall-distance) * 0.25), 0) scaleY(1.05) scaleX(0.95);
-                opacity: 0.92;
+                transform: translate3d(0, calc(var(--fall-distance) * 0.25), 0);
+                opacity: 0.95;
             }
             50% {
-                transform: translate3d(0, calc(var(--fall-distance) * 0.55), 0) scaleY(1.1) scaleX(0.9);
-                opacity: 0.85;
+                transform: translate3d(0, calc(var(--fall-distance) * 0.5), 0);
+                opacity: 0.9;
             }
             75% {
-                transform: translate3d(0, calc(var(--fall-distance) * 0.82), 0) scaleY(1.15) scaleX(0.85);
-                opacity: 0.6;
+                transform: translate3d(0, calc(var(--fall-distance) * 0.75), 0);
+                opacity: 0.7;
             }
             100% {
-                transform: translate3d(0, var(--fall-distance), 0) scaleY(1.2) scaleX(0.8);
+                transform: translate3d(0, var(--fall-distance), 0);
                 opacity: 0;
             }
         }
@@ -908,22 +908,25 @@
             overlay.appendChild(drip);
             activeDrainLeaks++;
             
-            // Start animation immediately for smooth performance
-            drip.style.animation = 'dropletFall 1.1s cubic-bezier(0.55, 0.05, 0.8, 0.35) forwards';
+            // Set will-change before animation for GPU optimization
+            drip.style.willChange = 'transform, opacity';
             
-            // Trigger GPU acceleration
-            drip.style.transform = 'translateZ(0)';
+            // Start animation with linear timing for smooth constant-speed fall
+            drip.style.animation = 'dropletFall 1.1s linear forwards';
             
-            // Create splash effect
-            setTimeout(() => spawnSplash(pos.landingY, pos.landingX), SPLASH_TIMING);
+            // Create splash effect at 95% of animation (just before landing)
+            const splashTimeout = setTimeout(() => {
+                spawnSplash(pos.landingY, pos.landingX);
+            }, 1045);
             
-            // Clean up droplet after animation completes
-            setTimeout(() => {
+            // Clean up droplet using animationend event for precise timing
+            drip.addEventListener('animationend', () => {
+                clearTimeout(splashTimeout);
                 if (drip && drip.parentNode === overlay) {
                     drip.remove();
                     activeDrainLeaks--;
                 }
-            }, DROPLET_DURATION);
+            }, { once: true });
         }
         
         function scheduleNextDrip() {
