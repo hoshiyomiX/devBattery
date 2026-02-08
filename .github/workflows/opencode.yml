@@ -1,4 +1,4 @@
-name: OpenCode Agent
+name: OpenCode Agent Pro
 
 permissions:
   id-token: write
@@ -13,13 +13,18 @@ on:
     types: [created]
 
 jobs:
-  opencode:
+  # ── Variant 1: /oc <prompt> → agent: build (langsung apply changes)
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 40
 
     if: |
-      (contains(github.event.comment.body, '/oc') || 
-       contains(github.event.comment.body, '/opencode')) &&
+      (
+        contains(github.event.comment.body, '/oc ') ||
+        contains(github.event.comment.body, '/opencode ')
+      ) &&
+      !contains(github.event.comment.body, '@plan') &&
+      !contains(github.event.comment.body, '@review') &&
       !contains(github.actor, '[bot]')
 
     steps:
@@ -34,27 +39,155 @@ jobs:
           git config --global user.name "OpenCode Agent"
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
 
-      - name: Run OpenCode Agent
+      - name: Run OpenCode Build Agent
         uses: anomalyco/opencode/github@latest
         env: {}
         with:
-          model: opencode/kimi-k2.5-free   # atau opencode/big-pickle kalau ingin coba lebih cepat/aware
-          agent: build             # Optional: eksplisit set kalau default tidak jalan
+          model: opencode/kimi-k2.5-free
+          agent: build
           prompt: |
             {
               "temperature": 0.05,
-              "steps": 14,
-              "reasoningEffort": "high",
+              "steps": 12,
+              "reasoningEffort": "medium",
               "textVerbosity": "low",
               "top_p": 0.9
             }
-            You are a careful and precise coding agent that ALWAYS considers side effects.
-            <thinking>Think step-by-step briefly (80–150 words max):
-            1. Understand the exact request and current code context.
-            2. Plan the minimal change.
-            3. Explicitly list potential side effects / regressions (UI breakage, event handlers, animations lain, performance, etc.).
-            4. Double-check if the fix impacts unrelated parts — if yes, suggest alternatives or warn.
-            If side effects likely and cannot be safely mitigated, STOP and comment asking for clarification instead of applying.
+            You are a fast, context-aware coding agent that deeply understands the repository structure.
+            
+            First: Quickly scan and understand:
+            - Current issue/PR/comment context
+            - Relevant files and their location in repo structure
+            - Related modules, components, assets, dependencies
+            
+            <thinking> (max 100 words total):
+            1. Summarize request + key context from repo/issue
+            2. Identify affected files and potential related files (side effects)
+            3. Plan minimal, safe change with exact file paths
+            4. List only 1–3 most critical side effects (if any)
+            If high risk → stop and ask clarification
             </thinking>
-            Only apply changes if side effects are minimal or fully mitigated.
-            Output ONLY the diff/patch + short summary of why safe (no verbose explanation outside <thinking>).
+            
+            Apply changes ONLY if safe and minimal impact.
+            Output format:
+            - Short safety summary (1 sentence)
+            - Diffs/patches only (no full file unless tiny)
+            - Branch/PR comment: concise explanation + "Applied safely"
+
+  # ── Variant 2: /oc @plan <prompt> → agent: plan (planning mode)
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    if: |
+      (
+        contains(github.event.comment.body, '/oc @plan ') ||
+        contains(github.event.comment.body, '/opencode @plan ')
+      ) &&
+      !contains(github.actor, '[bot]')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "OpenCode Agent"
+          git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
+
+      - name: Run OpenCode Plan Agent
+        uses: anomalyco/opencode/github@latest
+        env: {}
+        with:
+          model: opencode/kimi-k2.5-free
+          agent: plan
+          prompt: |
+            {
+              "temperature": 0.08,
+              "steps": 10,
+              "reasoningEffort": "medium",
+              "textVerbosity": "low",
+              "top_p": 0.92
+            }
+            You are a concise, repo-structure-aware planning agent.
+            
+            First: Map the request to repo context:
+            - Understand folder structure, entry points, component tree
+            - Identify which directories/files are relevant
+            
+            <thinking> (max 90 words):
+            1. Current goal + repo context summary
+            2. Key files/areas affected
+            3. Step-by-step minimal plan (3–6 steps max)
+            4. 1–2 main risks/side effects
+            </thinking>
+            
+            Output ONLY:
+            - PLAN: numbered steps with file paths
+            - Suggested code snippets (small & targeted)
+            - Risks & mitigations (brief)
+            - End with: "Ready to build? Use /oc to apply"
+            No full files, no commits, no unnecessary details.
+
+  # ── Variant 3: /oc @review <prompt> → agent: review (review mode)
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    if: |
+      (
+        contains(github.event.comment.body, '/oc @review ') ||
+        contains(github.event.comment.body, '/opencode @review ')
+      ) &&
+      !contains(github.actor, '[bot]')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "OpenCode Agent"
+          git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
+
+      - name: Run OpenCode Review Agent
+        uses: anomalyco/opencode/github@latest
+        env: {}
+        with:
+          model: opencode/kimi-k2.5-free
+          agent: review
+          prompt: |
+            {
+              "temperature": 0.1,
+              "steps": 8,
+              "reasoningEffort": "medium",
+              "textVerbosity": "low",
+              "top_p": 0.9
+            }
+            You are a sharp, structure-aware code reviewer that focuses on real issues.
+            
+            First: Understand repo context:
+            - File location & purpose in overall structure
+            - Related components/files that might interact
+            - Common patterns/conventions in this repo
+            
+            <thinking> (max 80 words):
+            1. Brief summary of code purpose & location
+            2. List only 2–5 most important issues (bugs, perf, security, maintainability)
+            3. Note any structural problems (wrong folder, tight coupling, etc.)
+            </thinking>
+            
+            Output structured review (use markdown):
+            ## Strengths (1–3 points)
+            ## Critical Issues (priority order)
+            ## Minor Suggestions
+            ## Overall Score (1–10) + one-sentence verdict
+            ## Recommendation: fix / refactor / approve
+            
+            Be direct, objective, concise. No fluff.
