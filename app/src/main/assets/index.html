@@ -831,14 +831,23 @@
                     bubble.style.opacity = '';
                 });
                 
-                // Precise bubble cleanup - match animation duration exactly to prevent premature disappearing
-                const totalAnimationTime = (finalDuration + animationDelay) * 1000;
-                setTimeout(() => {
+                // Use animationend event for precise cleanup - prevents premature disappearance
+                const cleanupBubble = () => {
                     if (bubble && bubble.parentNode === container) {
                         container.removeChild(bubble);
                         bubbleCount = Math.max(0, bubbleCount - 1);
                     }
-                }, totalAnimationTime + 100); // Add 100ms buffer to ensure animation completes
+                };
+                
+                bubble.addEventListener('animationend', cleanupBubble, { once: true });
+                
+                // Fallback cleanup in case animationend doesn't fire
+                const totalAnimationTime = (finalDuration + animationDelay) * 1000;
+                setTimeout(() => {
+                    if (bubble && bubble.parentNode === container) {
+                        cleanupBubble();
+                    }
+                }, totalAnimationTime + 200);
             }
         }
         
@@ -911,8 +920,13 @@
             // Set will-change before animation for GPU optimization
             drip.style.willChange = 'transform, opacity';
             
+            // Force reflow to ensure animation triggers properly
+            drip.offsetHeight;
+            
             // Start animation with linear timing for smooth constant-speed fall
-            drip.style.animation = 'dropletFall 0.6s linear forwards';
+            requestAnimationFrame(() => {
+                drip.style.animation = 'dropletFall 0.6s linear forwards';
+            });
             
             // Create splash effect at 95% of animation (just before landing)
             const splashTimeout = setTimeout(() => {
@@ -920,13 +934,22 @@
             }, 570);
             
             // Clean up droplet using animationend event for precise timing
-            drip.addEventListener('animationend', () => {
+            const cleanupDrip = () => {
                 clearTimeout(splashTimeout);
                 if (drip && drip.parentNode === overlay) {
                     drip.remove();
                     activeDrainLeaks--;
                 }
-            }, { once: true });
+            };
+            
+            drip.addEventListener('animationend', cleanupDrip, { once: true });
+            
+            // Fallback cleanup in case animationend doesn't fire
+            setTimeout(() => {
+                if (drip && drip.parentNode === overlay) {
+                    cleanupDrip();
+                }
+            }, 700);
         }
         
         function scheduleNextDrip() {
