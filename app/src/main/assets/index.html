@@ -650,7 +650,6 @@
             height: 12px;
             background: var(--drain-color);
             border-radius: 50% 50% 50% 0%;
-            transform: rotate(45deg);
             pointer-events: none;
             z-index: 999;
             opacity: 0.9;
@@ -1144,7 +1143,10 @@
             overlay.appendChild(drip);
             activeDrainLeaks++;
             
-            // Start animation immediately without delay
+            // Force reflow to ensure custom properties are applied before animation
+            void drip.offsetHeight;
+            
+            // Start animation after reflow
             drip.style.animation = 'dropletFall 1.1s ease-in forwards';
             
             // Create splash effect
