@@ -248,9 +248,9 @@
         }
         
         @keyframes dropletFall {
-            0% { transform: translateY(0); opacity: 0; }
-            5% { opacity: 0.95; }
-            95% { opacity: 0.8; }
+            0% { transform: translateY(0); opacity: 0.9; }
+            10% { opacity: 0.95; }
+            90% { opacity: 0.8; }
             100% {
                 transform: translateY(var(--fall-distance));
                 opacity: 0;
@@ -554,7 +554,7 @@
             background: var(--drain-color);
             border-radius: 50% 50% 50% 0%;
             transform: rotate(45deg);
-            animation: dropletFall 1.1s cubic-bezier(0.5, 0, 1, 1) forwards;
+            animation: dropletFall 1.1s ease-in forwards;
             pointer-events: none;
             z-index: 999;
             opacity: 0.9;
@@ -954,13 +954,14 @@
                 bubble.style.setProperty('--rise-distance', -riseDistance + 'px');
                 bubble.style.setProperty('--curve-amplitude', curveAmplitude + 'px');
                 bubble.style.animationDuration = finalDuration + 's';
-                bubble.style.animationDelay = (Math.random() * 1.2 + 0.2) + 's'; // Random delay 0.2-1.4s for better spacing
+                const animationDelay = Math.random() * 1.2 + 0.2; // Random delay 0.2-1.4s for better spacing
+                bubble.style.animationDelay = animationDelay + 's';
                 
                 container.appendChild(bubble);
                 bubbleCount++;
                 
-                // Optimized bubble cleanup - ensure proper fade completion
-                const cleanupTime = (finalDuration + 0.5) * 1000;
+                // Fixed bubble cleanup - ensure proper fade completion by accounting for animation delay
+                const cleanupTime = (finalDuration + animationDelay + 0.1) * 1000;
                 setTimeout(() => {
                     if (bubble && bubble.parentNode === container) {
                         container.removeChild(bubble);
