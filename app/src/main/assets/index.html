@@ -417,6 +417,7 @@
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
             transform: translateZ(0);
             backface-visibility: hidden;
+            will-change: transform, opacity;
         }
         
         .splash-particle {
@@ -908,7 +909,7 @@
             activeDrainLeaks++;
             
             // Start animation immediately for smooth performance
-            drip.style.animation = 'dropletFall 1.1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards';
+            drip.style.animation = 'dropletFall 1.1s cubic-bezier(0.55, 0.05, 0.8, 0.35) forwards';
             
             // Trigger GPU acceleration
             drip.style.transform = 'translateZ(0)';
