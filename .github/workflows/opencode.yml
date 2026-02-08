@@ -38,12 +38,12 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env: {}
         with:
-          model: opencode/big-pickle   # atau opencode/kimi-k2.5-free kalau ingin coba lebih cepat/aware
-          agent: build              # Optional: eksplisit set kalau default tidak jalan
+          model: opencode/kimi-k2.5-free   # atau opencode/big-pickle kalau ingin coba lebih cepat/aware
+          agent: general              # Optional: eksplisit set kalau default tidak jalan
           prompt: |
             {
               "temperature": 0.05,
-              "steps": 10,
+              "steps": 12,
               "reasoningEffort": "high",
               "textVerbosity": "low",
               "top_p": 0.9
