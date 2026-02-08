@@ -93,36 +93,32 @@
         
         @keyframes dropletFall {
             0% { 
-                transform: translateY(0) scaleY(0.9) scaleX(1.1);
+                transform: translate3d(0, 0, 0) scaleY(0.9) scaleX(1.1);
                 opacity: 0.9;
             }
-            15% {
-                transform: translateY(calc(var(--fall-distance) * 0.08)) scaleY(1) scaleX(1);
-                opacity: 0.95;
-            }
-            35% {
-                transform: translateY(calc(var(--fall-distance) * 0.25)) scaleY(1.05) scaleX(0.95);
+            25% {
+                transform: translate3d(0, calc(var(--fall-distance) * 0.25), 0) scaleY(1.05) scaleX(0.95);
                 opacity: 0.92;
             }
-            60% {
-                transform: translateY(calc(var(--fall-distance) * 0.58)) scaleY(1.1) scaleX(0.9);
+            50% {
+                transform: translate3d(0, calc(var(--fall-distance) * 0.55), 0) scaleY(1.1) scaleX(0.9);
                 opacity: 0.85;
             }
-            85% {
-                transform: translateY(calc(var(--fall-distance) * 0.88)) scaleY(1.15) scaleX(0.85);
+            75% {
+                transform: translate3d(0, calc(var(--fall-distance) * 0.82), 0) scaleY(1.15) scaleX(0.85);
                 opacity: 0.6;
             }
             100% {
-                transform: translateY(var(--fall-distance)) scaleY(1.2) scaleX(0.8);
+                transform: translate3d(0, var(--fall-distance), 0) scaleY(1.2) scaleX(0.8);
                 opacity: 0;
             }
         }
         
         @keyframes splashParticle {
-            0% { transform: translate(0, 0) scale(1); opacity: 1; }
-            15% { transform: translate(var(--splash-x), -8px) scale(1.2); opacity: 0.9; }
-            50% { transform: translate(calc(var(--splash-x) * 1.8), 2px) scale(0.8); opacity: 0.6; }
-            100% { transform: translate(calc(var(--splash-x) * 2.2), 12px) scale(0.3); opacity: 0; }
+            0% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+            25% { transform: translate3d(var(--splash-x), -8px, 0) scale(1.2); opacity: 0.9; }
+            60% { transform: translate3d(calc(var(--splash-x) * 1.8), 2px, 0) scale(0.8); opacity: 0.6; }
+            100% { transform: translate3d(calc(var(--splash-x) * 2.2), 12px, 0) scale(0.3); opacity: 0; }
         }
         
         @keyframes fadeInUp {
@@ -418,8 +414,9 @@
             pointer-events: none;
             z-index: 999;
             opacity: 0.9;
-            will-change: transform, opacity;
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
         
         .splash-particle {
@@ -431,6 +428,8 @@
             animation: splashParticle 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
             pointer-events: none;
             z-index: 998;
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
         
         .status-text {
@@ -898,7 +897,6 @@
             drip.style.opacity = '0.9';
             drip.style.position = 'fixed';
             drip.style.zIndex = '999';
-            drip.style.willChange = 'transform, opacity';
             
             // Debug: ensure fall distance is valid
             if (pos.fallDistance <= 0) {
@@ -909,11 +907,11 @@
             overlay.appendChild(drip);
             activeDrainLeaks++;
             
-            // Force reflow to ensure custom properties are applied before animation
-            void drip.offsetHeight;
+            // Start animation immediately for smooth performance
+            drip.style.animation = 'dropletFall 1.1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards';
             
-            // Start animation after reflow
-            drip.style.animation = 'dropletFall 1.1s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards';
+            // Trigger GPU acceleration
+            drip.style.transform = 'translateZ(0)';
             
             // Create splash effect
             setTimeout(() => spawnSplash(pos.landingY, pos.landingX), SPLASH_TIMING);
