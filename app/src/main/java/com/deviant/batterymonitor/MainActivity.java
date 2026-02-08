@@ -216,14 +216,12 @@ public class MainActivity extends Activity {
                 
                 logDebug("--- SYSFS ACCESS TEST ---");
                 String[] sysfsPaths = {
-                    "/sys/class/power_supply/",
-                    "/sys/devices/platform/charger/",
-                    "/sys/class/power_supply/battery/"
+                    "/sys/devices/platform/charger/ADC_Charger_Voltage"
                 };
-                
+
                 for (String path : sysfsPaths) {
-                    File dir = new File(path);
-                    if (dir.exists() && dir.canRead()) {
+                    File file = new File(path);
+                    if (file.exists() && file.canRead()) {
                         logDebug("✓ " + path + " - Accessible");
                     } else {
                         logDebug("✗ " + path + " - Blocked (AVC denial)");
@@ -456,14 +454,12 @@ public class MainActivity extends Activity {
                 
                 info.append("--- SYSFS ACCESS CHECK ---\n");
                 String[] sysfsPaths = {
-                    "/sys/class/power_supply/",
-                    "/sys/devices/platform/charger/",
-                    "/sys/class/power_supply/battery/"
+                    "/sys/devices/platform/charger/ADC_Charger_Voltage"
                 };
-                
+
                 for (String path : sysfsPaths) {
-                    File dir = new File(path);
-                    if (dir.exists() && dir.canRead()) {
+                    File file = new File(path);
+                    if (file.exists() && file.canRead()) {
                         info.append("✓ ").append(path).append(" - Accessible\n");
                     } else {
                         info.append("✗ ").append(path).append(" - Blocked (AVC denial)\n");
