@@ -39,12 +39,12 @@ jobs:
         env: {}
         with:
           model: opencode/kimi-k2.5-free   # atau opencode/big-pickle kalau ingin coba lebih cepat/aware
-          agent: general              # Optional: eksplisit set kalau default tidak jalan
+          agent: build             # Optional: eksplisit set kalau default tidak jalan
           prompt: |
             {
               "temperature": 0.05,
               "steps": 12,
-              "reasoningEffort": "high",
+              "reasoningEffort": "xhigh",
               "textVerbosity": "low",
               "top_p": 0.9
             }
