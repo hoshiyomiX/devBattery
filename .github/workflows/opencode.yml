@@ -43,8 +43,8 @@ jobs:
           prompt: |
             {
               "temperature": 0.05,
-              "steps": 12,
-              "reasoningEffort": "xhigh",
+              "steps": 14,
+              "reasoningEffort": "high",
               "textVerbosity": "low",
               "top_p": 0.9
             }
