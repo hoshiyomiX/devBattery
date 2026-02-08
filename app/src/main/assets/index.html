@@ -42,9 +42,54 @@
         
         @keyframes bubbleRise {
             0% {
-                transform: translateY(0) translateX(0) scale(0.8);
+                transform: translate3d(0, 0, 0) scale(0.8);
                 opacity: 0;
             }
+            5% {
+                opacity: 0.4;
+                transform: translate3d(calc(var(--curve-amplitude) * 0.2), calc(var(--rise-distance) * 0.05), 0) scale(0.9);
+            }
+            15% {
+                opacity: 0.8;
+                transform: translate3d(calc(var(--curve-amplitude) * 0.6), calc(var(--rise-distance) * 0.15), 0) scale(1);
+            }
+            25% {
+                opacity: 1;
+                transform: translate3d(calc(var(--curve-amplitude) * 0.95), calc(var(--rise-distance) * 0.25), 0) scale(1);
+            }
+            35% {
+                opacity: 1;
+                transform: translate3d(calc(var(--curve-amplitude) * 0.8), calc(var(--rise-distance) * 0.35), 0) scale(1);
+            }
+            45% {
+                opacity: 0.95;
+                transform: translate3d(calc(var(--curve-amplitude) * 0.4), calc(var(--rise-distance) * 0.45), 0) scale(0.95);
+            }
+            55% {
+                opacity: 0.9;
+                transform: translate3d(calc(var(--curve-amplitude) * -0.1), calc(var(--rise-distance) * 0.55), 0) scale(0.9);
+            }
+            65% {
+                opacity: 0.8;
+                transform: translate3d(calc(var(--curve-amplitude) * -0.5), calc(var(--rise-distance) * 0.65), 0) scale(0.85);
+            }
+            75% {
+                opacity: 0.6;
+                transform: translate3d(calc(var(--curve-amplitude) * -0.7), calc(var(--rise-distance) * 0.75), 0) scale(0.8);
+            }
+            85% {
+                opacity: 0.3;
+                transform: translate3d(calc(var(--curve-amplitude) * -0.5), calc(var(--rise-distance) * 0.85), 0) scale(0.7);
+            }
+            95% {
+                opacity: 0.1;
+                transform: translate3d(calc(var(--curve-amplitude) * -0.2), calc(var(--rise-distance) * 0.95), 0) scale(0.6);
+            }
+            100% {
+                transform: translate3d(0, var(--rise-distance), 0) scale(0.5);
+                opacity: 0;
+            }
+        }
             5% {
                 opacity: 0.4;
                 transform: translateY(calc(var(--rise-distance) * 0.05)) translateX(calc(var(--curve-amplitude) * 0.2)) scale(0.9);
@@ -248,11 +293,18 @@
         }
         
         @keyframes dropletFall {
-            0% { transform: translateY(0); opacity: 0.9; }
-            10% { opacity: 0.95; }
-            90% { opacity: 0.8; }
+            0% { 
+                transform: translate3d(0, 0, 0) rotate(45deg); 
+                opacity: 0.9; 
+            }
+            10% { 
+                opacity: 0.95; 
+            }
+            90% { 
+                opacity: 0.8; 
+            }
             100% {
-                transform: translateY(var(--fall-distance));
+                transform: translate3d(0, var(--fall-distance), 0) rotate(45deg);
                 opacity: 0;
             }
         }
@@ -558,6 +610,7 @@
             pointer-events: none;
             z-index: 999;
             opacity: 0.9;
+            will-change: transform, opacity;
         }
         
         .splash-particle {
@@ -855,8 +908,8 @@
             const rect = tile.getBoundingClientRect();
             const viewportHeight = window.innerHeight;
             const landingY = viewportHeight - LANDING_OFFSET;
-            const spawnY = rect.bottom;
-            const fallDistance = landingY - spawnY;
+            const spawnY = rect.bottom - 10; // Adjust spawn position
+            const fallDistance = Math.max(50, landingY - spawnY); // Ensure minimum fall distance
             
             return {
                 spawnX: rect.right - 20,
@@ -957,11 +1010,20 @@
                 const animationDelay = Math.random() * 1.2 + 0.2; // Random delay 0.2-1.4s for better spacing
                 bubble.style.animationDelay = animationDelay + 's';
                 
+                // Ensure bubble has proper initial state
+                bubble.style.opacity = '0';
+                bubble.style.willChange = 'transform, opacity';
+                
                 container.appendChild(bubble);
                 bubbleCount++;
                 
-                // Fixed bubble cleanup - ensure proper fade completion by accounting for animation delay
-                const cleanupTime = (finalDuration + animationDelay + 0.1) * 1000;
+                // Start the animation after a brief delay to ensure proper initialization
+                requestAnimationFrame(() => {
+                    bubble.style.opacity = '';
+                });
+                
+                // Fixed bubble cleanup - ensure proper fade completion with extra buffer
+                const cleanupTime = (finalDuration + animationDelay + 0.8) * 1000;
                 setTimeout(() => {
                     if (bubble && bubble.parentNode === container) {
                         container.removeChild(bubble);
@@ -1016,15 +1078,37 @@
             drip.className = 'drain-drip';
             
             const pos = calculateLandingPosition();
+            
+            // Set positioning and animation properties
             drip.style.top = pos.spawnY + 'px';
             drip.style.left = pos.spawnX + 'px';
             drip.style.setProperty('--fall-distance', pos.fallDistance + 'px');
             drip.style.setProperty('--drain-color', getBatteryColor(currentCapacity));
             
+            // Ensure the droplet is visible and properly positioned
+            drip.style.opacity = '0.9';
+            drip.style.position = 'fixed';
+            drip.style.zIndex = '999';
+            drip.style.willChange = 'transform, opacity';
+            
+            // Debug: ensure fall distance is valid
+            if (pos.fallDistance <= 0) {
+                console.warn('Invalid fall distance calculated:', pos.fallDistance);
+                return;
+            }
+            
             overlay.appendChild(drip);
             activeDrainLeaks++;
             
+            // Ensure animation starts properly
+            requestAnimationFrame(() => {
+                drip.style.animation = 'dropletFall 1.1s ease-in forwards';
+            });
+            
+            // Create splash effect
             setTimeout(() => spawnSplash(pos.landingY, pos.landingX), SPLASH_TIMING);
+            
+            // Clean up droplet after animation completes
             setTimeout(() => {
                 if (drip && drip.parentNode === overlay) {
                     drip.remove();
