@@ -4,7 +4,7 @@ android {
     compileSdkVersion 31
     
     defaultConfig {
-        applicationId "com.deviant.batterymonitor"
+        applicationId "com.deviant.mtkbattery"
         minSdkVersion 21
         targetSdkVersion 31
         versionCode 3

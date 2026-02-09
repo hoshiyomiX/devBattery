@@ -1,4 +1,4 @@
-package com.deviant.batterymonitor
+package com.deviant.mtkbattery
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
