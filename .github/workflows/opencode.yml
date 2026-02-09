@@ -43,12 +43,12 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env: {}
         with:
-          model: opencode/glm-4.7-free
+          model: opencode/big-pickle
           agent: build
           prompt: |
             {
               "temperature": 0.05,
-              "steps": 8,
+              "steps": 10,
               "reasoningEffort": "medium",
               "textVerbosity": "low",
               "top_p": 0.9
@@ -102,7 +102,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env: {}
         with:
-          model: opencode/glm-4.7-free
+          model: opencode/big-pickle
           agent: plan
           prompt: |
             {
@@ -162,7 +162,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env: {}
         with:
-          model: opencode/glm-4.7-free
+          model: opencode/big-pickle
           agent: review
           prompt: |
             {
