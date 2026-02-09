@@ -43,7 +43,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env: {}
         with:
-          model: glm-4.7-free
+          model: opencode/glm-4.7-free
           agent: build
           prompt: |
             {
@@ -102,7 +102,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env: {}
         with:
-          model: glm-4.7-free
+          model: opencode/glm-4.7-free
           agent: plan
           prompt: |
             {
@@ -162,7 +162,7 @@ jobs:
         uses: anomalyco/opencode/github@latest
         env: {}
         with:
-          model: glm-4.7-free
+          model: opencode/glm-4.7-free
           agent: review
           prompt: |
             {
