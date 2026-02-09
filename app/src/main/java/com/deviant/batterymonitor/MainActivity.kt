@@ -15,6 +15,8 @@ import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
+    constructor() : super()
+
     private lateinit var webView: WebView
     private var batteryReceiver: BroadcastReceiver? = null
 

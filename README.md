@@ -1,33 +1,46 @@
-This is a template project for Android Studio that allows you to create an android webview application in minutes. You can use it to create a simple app for your website or as a starting point for your HTML5 based android app.
+# Battery Monitor Android App
 
-### Getting started
+An Android application that provides comprehensive battery monitoring capabilities through a WebView-based interface.
 
-[Download](https://github.com/slymax/webview/archive/master.zip) or clone this repository and import it into Android Studio.
+## Features
 
-### Using a remote source
+- Real-time battery status monitoring
+- Battery health and temperature tracking  
+- Power consumption analysis
+- WebView-based user interface
+- Location-aware battery usage tracking
 
-If you want to create an app that shows the content of a remote website
+## Requirements
 
-1. uncomment line **24** in `MainActivity.java` and replace `https://example.com` with your url
+- Android 5.0 (API level 21) or higher
+- Required permissions:
+  - Battery statistics access
+  - Location access (for enhanced battery usage tracking)
+  - Internet access
 
-	```java
-	mWebView.loadUrl("https://example.com");
-	```
+## Installation
 
-2. open the `MyWebViewClient.java` file and replace `example.com` on line **15** with your hostname
+1. Clone this repository
+2. Open in Android Studio
+3. Build and run the application
 
-	```java
-	hostname = "example.com";
-	```
+## Project Structure
 
-### Using a local source
+- `app/src/main/java/com/deviant/batterymonitor/MainActivity.kt` - Main application logic
+- `app/src/main/assets/index.html` - WebView interface for battery monitoring
+- `app/src/main/AndroidManifest.xml` - App configuration and permissions
 
-If you want to create a local HTML5 android app
+## Build Configuration
 
-1. uncomment line **27** in `MainActivity.java`
+- Target SDK: 34 (Android 14)
+- Min SDK: 21 (Android 5.0)
+- Java Compatibility: Version 11
 
-	```java
-	mWebView.loadUrl("file:///android_asset/index.html");
-	```
+## Usage
 
-2. put all your files (including your `index.html`) in the `assets` directory
+Launch the app to view real-time battery information including:
+- Current battery level
+- Battery temperature
+- Charging status
+- Battery health
+- Power consumption patterns
