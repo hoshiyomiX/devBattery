@@ -92,24 +92,12 @@
         }
         
         @keyframes dropletFall {
-            0% { 
-                transform: translate3d(0, 0, 0);
+            0% {
+                transform: translate3d(0, 0, 0) translateZ(0);
                 opacity: 0.95;
             }
-            25% {
-                transform: translate3d(0, calc(var(--fall-distance) * 0.25), 0);
-                opacity: 0.94;
-            }
-            50% {
-                transform: translate3d(0, calc(var(--fall-distance) * 0.50), 0);
-                opacity: 0.91;
-            }
-            75% {
-                transform: translate3d(0, calc(var(--fall-distance) * 0.75), 0);
-                opacity: 0.75;
-            }
             100% {
-                transform: translate3d(0, var(--fall-distance), 0);
+                transform: translate3d(0, var(--fall-distance), 0) translateZ(0);
                 opacity: 0;
             }
         }
@@ -913,12 +901,12 @@
             drip.style.willChange = 'transform, opacity';
             
             // Start animation with linear timing for smooth constant-speed fall
-            drip.style.animation = 'dropletFall 0.6s linear forwards';
-            
-            // Create splash effect at 83% of animation (synced with simplified keyframes)
+            drip.style.animation = 'dropletFall 0.5s cubic-bezier(0.4, 0, 1, 1) forwards';
+
+            // Create splash effect at 84% of animation (synced with simplified keyframes)
             const splashTimeout = setTimeout(() => {
                 spawnSplash(pos.landingY, pos.landingX);
-            }, 500);
+            }, 420);
             
             // Clean up droplet using animationend event for precise timing
             drip.addEventListener('animationend', () => {
