@@ -15,3 +15,13 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+# Keep JavaScript interface methods for BatteryBridge
+-keepclassmembers class com.deviant.batterymonitor.MainActivity$BatteryBridge {
+    public *;
+}
+
+# Keep all classes with @JavascriptInterface annotation
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}

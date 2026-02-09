@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        webView = findViewById(R.id.webView)
+        webView = findViewById(R.id.activity_main_webview)
         webView.settings.javaScriptEnabled = true
         webView.webViewClient = WebViewClient()
 
@@ -48,7 +48,9 @@ class MainActivity : AppCompatActivity() {
     private fun setupBatteryBroadcast() {
         batteryReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                webView.evaluateJavascript("if(typeof updateBattery === 'function') updateBattery();", null)
+                if (!isDestroyed && ::webView.isInitialized) {
+                    webView.evaluateJavascript("if(typeof updateBattery === 'function') updateBattery();", null)
+                }
             }
         }
         registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
