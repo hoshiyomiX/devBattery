@@ -227,28 +227,48 @@ public class MainActivity extends Activity {
                 System.out.println("[DEBUG] Error getting battery voltage from intent: " + e.getMessage());
             }
             
-            // Fallback: try to read from remaining sysfs path
-            try {
-                File file = new File("/sys/devices/platform/charger/ADC_Charger_Voltage");
-                if (file.exists() && file.canRead()) {
-                    BufferedReader reader = new BufferedReader(new FileReader(file));
-                    String value = reader.readLine();
-                    reader.close();
-                    
-                    if (value != null && !value.isEmpty()) {
-                        value = value.trim();
-                        long microvolts = Long.parseLong(value);
-                        return (int)(microvolts / 1000);
+            // Additional fallback: try common battery voltage sysfs paths
+            String[] batteryPaths = {
+                "/sys/class/power_supply/battery/voltage_now",
+                "/sys/class/power_supply/main-battery/voltage_now",
+                "/sys/devices/platform/charger/ADC_Charger_Voltage",
+                "/sys/class/power_supply/bms/voltage_now",
+                "/sys/class/power_supply/usb/voltage_now"
+            };
+            
+            for (String path : batteryPaths) {
+                try {
+                    File file = new File(path);
+                    if (file.exists() && file.canRead()) {
+                        BufferedReader reader = new BufferedReader(new FileReader(file));
+                        String value = reader.readLine();
+                        reader.close();
+                        
+                        if (value != null && !value.isEmpty()) {
+                            value = value.trim();
+                            if (value.matches("\\d+")) {
+                                long microvolts = Long.parseLong(value);
+                                // Some paths return microvolts, others return millivolts
+                                if (microvolts > 1000000) {
+                                    // Likely microvolts, convert to millivolts
+                                    return (int)(microvolts / 1000);
+                                } else {
+                                    // Likely already millivolts
+                                    return (int)microvolts;
+                                }
+                            }
+                        }
                     }
+                } catch (SecurityException e) {
+                    System.out.println("[DEBUG] SELinux blocking access to " + path + ": " + e.getMessage());
+                } catch (Exception e) {
+                    System.out.println("[DEBUG] Error reading " + path + ": " + e.getMessage());
                 }
-            } catch (SecurityException e) {
-                System.out.println("[DEBUG] SELinux blocking access to fallback voltage: " + e.getMessage());
-            } catch (Exception e) {
-                System.out.println("[DEBUG] Error reading fallback voltage: " + e.getMessage());
             }
             
-            // Return 1000mV fallback if no voltage reading available (same as charger fallback)
-            return 1000;
+            // Final fallback: return typical battery voltage (3.7V = 3700mV for lithium batteries)
+            System.out.println("[DEBUG] All voltage sources failed, using default 3700mV");
+            return 3700;
         }
         
 
