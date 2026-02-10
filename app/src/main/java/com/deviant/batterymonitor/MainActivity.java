@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
         boolean isDark = (newConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
         String theme = isDark ? "dark" : "light";
         
-        logDebug("[THEME] System theme changed to: " + theme);
+        System.out.println("[THEME] System theme changed to: " + theme);
         
         if (webView != null) {
             runOnUiThread(() -> {

@@ -11,7 +11,6 @@ class MyWebViewClient extends WebViewClient {
     public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
         String url = request.getUrl().toString();
         String hostname;
-        String hostname;
 
         // YOUR HOSTNAME
         hostname = "example.com";
