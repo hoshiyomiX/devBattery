@@ -125,11 +125,14 @@ public class MainActivity extends Activity {
                 int voltageMv;
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
                 
+                // Logic if-else untuk charging detection
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
                     chargerVoltage = readChargerVoltageDirect();
                     voltageMv = Integer.parseInt(chargerVoltage);
+                    data.put("voltage_source", "charger");
                 } else {
                     voltageMv = getBatteryVoltageFromManager();
+                    data.put("voltage_source", "battery");
                 }
                 
                 data.put("capacity", String.valueOf(capacity));
@@ -139,6 +142,7 @@ public class MainActivity extends Activity {
                 data.put("temp", String.valueOf(tempDeci));
                 data.put("source", "sepolicy_modified");
                 data.put("charger_voltage", chargerVoltage);
+                data.put("is_charging", status == BatteryManager.BATTERY_STATUS_CHARGING);
                 
                 String historyEntry = String.format(Locale.US, 
                     "[%s] %d%% | %s | %.2fV | %dmA | %.1f°C | Charger: %smV",
