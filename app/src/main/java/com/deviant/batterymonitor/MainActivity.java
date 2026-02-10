@@ -125,6 +125,9 @@ public class MainActivity extends Activity {
                 int voltageMv;
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
                 
+                // VOLTAGE READING LOGIC: Multi-path approach based on charging status
+                // When charging: read from charger voltage paths (more accurate for charging voltage)
+                // When discharging: read from battery voltage paths (actual battery output)
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
                     chargerVoltage = readChargerVoltageDirect();
                     voltageMv = Integer.parseInt(chargerVoltage);
@@ -160,11 +163,14 @@ public class MainActivity extends Activity {
         }
         
         private String readChargerVoltageDirect() {
+            // CHARGER VOLTAGE READING: Priority-based path checking
+            // Reads from charger-specific sysfs paths when device is charging
+            // Returns voltage in millivolts (mV) for frontend processing
             String[] possiblePaths = {
-                "/sys/devices/platform/charger/ADC_Charger_Voltage",
-                "/sys/class/power_supply/usb/voltage_now",
-                "/sys/class/power_supply/ac/voltage_now",
-                "/sys/class/power_supply/battery/input_voltage_now"
+                "/sys/devices/platform/charger/ADC_Charger_Voltage",  // Platform-specific charger ADC
+                "/sys/class/power_supply/usb/voltage_now",             // USB charger voltage
+                "/sys/class/power_supply/ac/voltage_now",              // AC charger voltage  
+                "/sys/class/power_supply/battery/input_voltage_now"   // Battery input voltage
             };
             
             for (String path : possiblePaths) {
@@ -177,9 +183,11 @@ public class MainActivity extends Activity {
                         
                         if (value != null && !value.isEmpty()) {
                             value = value.trim();
+                            // Convert microvolts (μV) to millivolts (mV) for frontend
+                            // Frontend expects mV and will divide by 1000 for volts display
                             if (value.length() > 4) {
                                 long microvolts = Long.parseLong(value);
-                                return String.valueOf(microvolts / 1000);
+                                return String.valueOf(microvolts / 1000);  // μV → mV conversion
                             }
                             return value;
                         }
@@ -196,10 +204,13 @@ public class MainActivity extends Activity {
         }
         
         private int readVoltageFromSysfs() {
+            // BATTERY VOLTAGE READING: Battery-specific sysfs paths
+            // Used when device is discharging to get actual battery output voltage
+            // Returns millivolts (mV) with fallback to 3700mV (3.7V typical Li-ion)
             String[] possiblePaths = {
-                "/sys/class/power_supply/battery/voltage_now",
-                "/sys/class/power_supply/bmc156_battery/voltage_now",
-                "/sys/devices/platform/battery/power_supply/battery/voltage_now"
+                "/sys/class/power_supply/battery/voltage_now",              // Standard battery voltage
+                "/sys/class/power_supply/bmc156_battery/voltage_now",       // Device-specific battery
+                "/sys/devices/platform/battery/power_supply/battery/voltage_now" // Platform battery
             };
             
             for (String path : possiblePaths) {
@@ -213,7 +224,7 @@ public class MainActivity extends Activity {
                         if (value != null && !value.isEmpty()) {
                             value = value.trim();
                             long microvolts = Long.parseLong(value);
-                            return (int)(microvolts / 1000); // Convert to millivolts
+                            return (int)(microvolts / 1000); // Convert μV → mV for frontend
                         }
                     }
                 } catch (FileNotFoundException e) {
@@ -224,7 +235,7 @@ public class MainActivity extends Activity {
                     // Error reading path - silent fallback
                 }
             }
-            return 3700; // Default fallback voltage in mV
+            return 3700; // Default fallback: 3.7V typical Li-ion battery (3700mV)
         }
         
 

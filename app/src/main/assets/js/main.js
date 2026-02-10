@@ -399,9 +399,10 @@
             const capacity = parseInt(data.capacity) || 0;
             const status = data.status || lastStatus || "Unknown";
             
-            // VOLTAGE: Backend now sends mV (already converted from sysfs uV, or fallback 1000mV)
-            // Just divide by 1000 to get volts for display
-            const voltageRaw = parseInt(data.voltage) || 1000; // Fallback to 1V if missing
+            // VOLTAGE PROCESSING: Backend sends millivolts (mV) from Android native layer
+            // Convert to volts (V) for UI display by dividing by 1000
+            // mV → V conversion: 4000mV / 1000 = 4.00V display
+            const voltageRaw = parseInt(data.voltage) || 1000; // Fallback to 1000mV (1V)
             const voltage = formatNumber(voltageRaw / 1000, 2);
             
             const current = Math.floor((parseInt(data.current_now) || 0) / 1000);
@@ -409,7 +410,9 @@
             currentMA = current;
             const temperature = formatNumber((parseInt(data.temp) || 0) / 10, 1);
             
-            // Power calc: backend voltage (mV) * current (uA) / 1,000,000 = milliwatts, then /1000 = watts
+            // POWER CALCULATION: P = V × I
+            // Backend: voltage (mV) × current (μA) / 1,000,000,000 = watts
+            // Example: 4000mV × 500000μA / 1,000,000,000 = 2.00W
             const power = formatPower(Math.abs((voltageRaw * (parseInt(data.current_now) || 0)) / 1000000000));
             
             if (status !== "Unknown") lastStatus = status;

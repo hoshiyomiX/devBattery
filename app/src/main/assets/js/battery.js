@@ -64,11 +64,11 @@ class BatteryManager {
                 timestamp: Date.now()
             };
             
-            // Calculate derived values
-            batteryData.voltageV = batteryData.voltage / 1000;
-            batteryData.currentMA = Math.floor(batteryData.current / 1000);
-            batteryData.temperatureC = batteryData.temperature / 10;
-            batteryData.powerW = Math.abs((batteryData.voltage * batteryData.current) / 1000000000);
+            // DERIVED VALUES CONVERSION: Backend raw data → human-readable units
+            batteryData.voltageV = batteryData.voltage / 1000;        // mV → V (voltage)
+            batteryData.currentMA = Math.floor(batteryData.current / 1000); // μA → mA (current)
+            batteryData.temperatureC = batteryData.temperature / 10;    // deci-Celsius → Celsius
+            batteryData.powerW = Math.abs((batteryData.voltage * batteryData.current) / 1000000000); // mV×μA → W
             
             // Status flags
             batteryData.isCharging = batteryData.status.toLowerCase() === 'charging';
