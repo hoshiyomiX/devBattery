@@ -15,8 +15,6 @@ import java.io.File
 
 class MainActivity : AppCompatActivity() {
 
-    constructor() : super()
-
     private lateinit var webView: WebView
     private var batteryReceiver: BroadcastReceiver? = null
 
@@ -26,8 +24,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         webView = findViewById(R.id.activity_main_webview)
-        webView.settings.javaScriptEnabled = true
-        webView.webViewClient = WebViewClient()
+        webView.apply {
+            settings.javaScriptEnabled = true
+            webViewClient = WebViewClient()
+        }
 
         // Injeksi JavaScript interface
         webView.addJavascriptInterface(object {
