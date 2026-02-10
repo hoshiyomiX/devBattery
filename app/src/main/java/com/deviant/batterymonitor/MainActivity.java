@@ -304,11 +304,16 @@ public class MainActivity extends Activity {
                     return "file not found: " + apkPath;
                 }
                 
-                // Try to get SELinux context using libcore
+                // SELinux context access requires reflection on newer Android versions
                 try {
-                    String context = Os.getfilecon(apkPath);
-                    if (context != null && !context.isEmpty()) {
-                        return context;
+                    Class<?> OsClass = Class.forName("android.system.Os");
+                    java.lang.reflect.Method getfileconMethod = OsClass.getMethod("getfilecon", String.class);
+                    Object result = getfileconMethod.invoke(null, apkPath);
+                    if (result instanceof Object[] && ((Object[]) result).length > 0) {
+                        String context = (String) ((Object[]) result)[0];
+                        if (context != null && !context.isEmpty()) {
+                            return context;
+                        }
                     }
                 } catch (Exception e) {
                     // Fallback to manual check
@@ -328,7 +333,7 @@ public class MainActivity extends Activity {
             try {
                 // Try to read logcat for SELinux denials
                 String[] logcatCmd = {"logcat", "-d", "-s", "audit:*", "*:E"};
-                Process logcatProcess = Runtime.getRuntime().exec(logcatCmd);
+java.lang.Process logcatProcess = Runtime.getRuntime().exec(logcatCmd);
                 
                 BufferedReader logcatReader = new BufferedReader(
                     new InputStreamReader(logcatProcess.getInputStream()));
@@ -353,7 +358,7 @@ public class MainActivity extends Activity {
                 // Try to read dmesg for kernel messages
                 try {
                     String[] dmesgCmd = {"dmesg"};
-                    Process dmesgProcess = Runtime.getRuntime().exec(dmesgCmd);
+                    java.lang.Process dmesgProcess = Runtime.getRuntime().exec(dmesgCmd);
                     
                     BufferedReader dmesgReader = new BufferedReader(
                         new InputStreamReader(dmesgProcess.getInputStream()));
