@@ -195,6 +195,38 @@ public class MainActivity extends Activity {
             return "0";
         }
         
+        private int readVoltageFromSysfs() {
+            String[] possiblePaths = {
+                "/sys/class/power_supply/battery/voltage_now",
+                "/sys/class/power_supply/bmc156_battery/voltage_now",
+                "/sys/devices/platform/battery/power_supply/battery/voltage_now"
+            };
+            
+            for (String path : possiblePaths) {
+                try {
+                    File file = new File(path);
+                    if (file.exists() && file.canRead()) {
+                        BufferedReader reader = new BufferedReader(new FileReader(file));
+                        String value = reader.readLine();
+                        reader.close();
+                        
+                        if (value != null && !value.isEmpty()) {
+                            value = value.trim();
+                            long microvolts = Long.parseLong(value);
+                            return (int)(microvolts / 1000); // Convert to millivolts
+                        }
+                    }
+                } catch (FileNotFoundException e) {
+                    // Path doesn't exist
+                } catch (SecurityException e) {
+                    // SELinux blocking access - silent fallback
+                } catch (Exception e) {
+                    // Error reading path - silent fallback
+                }
+            }
+            return 3700; // Default fallback voltage in mV
+        }
+        
 
         
         private String getStatusString(int status) {
