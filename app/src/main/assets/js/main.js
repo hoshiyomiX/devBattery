@@ -398,11 +398,16 @@
             
             const capacity = parseInt(data.capacity) || 0;
             const status = data.status || lastStatus || "Unknown";
+            const isCharging = data.is_charging || false;
+            const voltageSource = data.voltage_source || "unknown";
             
             // VOLTAGE: Backend now sends mV (already converted from sysfs uV, or fallback 1000mV)
             // Just divide by 1000 to get volts for display
             const voltageRaw = parseInt(data.voltage) || 1000; // Fallback to 1V if missing
             const voltage = formatNumber(voltageRaw / 1000, 2);
+            
+            // Debug info untuk voltage source
+            console.log(`Voltage source: ${voltageSource}, Charging: ${isCharging}, Voltage: ${voltage}V`);
             
             const current = Math.floor((parseInt(data.current_now) || 0) / 1000);
             // Update global current MA for spawn logic
