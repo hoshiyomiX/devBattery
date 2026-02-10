@@ -129,7 +129,7 @@ public class MainActivity extends Activity {
                     chargerVoltage = readChargerVoltageDirect();
                     voltageMv = Integer.parseInt(chargerVoltage);
                 } else {
-                    voltageMv = readVoltageFromSysfs();
+                    voltageMv = getBatteryVoltageFromManager();
                 }
                 
                 data.put("capacity", String.valueOf(capacity));
@@ -161,10 +161,7 @@ public class MainActivity extends Activity {
         
         private String readChargerVoltageDirect() {
             String[] possiblePaths = {
-                "/sys/devices/platform/charger/ADC_Charger_Voltage",
-                "/sys/class/power_supply/usb/voltage_now",
-                "/sys/class/power_supply/ac/voltage_now",
-                "/sys/class/power_supply/battery/input_voltage_now"
+                "/sys/devices/platform/charger/ADC_Charger_Voltage"
             };
             
             for (String path : possiblePaths) {
@@ -187,44 +184,49 @@ public class MainActivity extends Activity {
                 } catch (FileNotFoundException e) {
                     // Path doesn't exist
                 } catch (SecurityException e) {
-                    // SELinux blocking access - silent fallback
+                    // SELinux blocking access - print to debug logs
+                    System.out.println("[DEBUG] SELinux blocking access to charger voltage: " + e.getMessage());
                 } catch (Exception e) {
-                    // Error reading path - silent fallback
+                    // Error reading path - print to debug logs
+                    System.out.println("[DEBUG] Error reading charger voltage: " + e.getMessage());
                 }
             }
-            return "0";
+            return "1000"; // Default 1V for power calculation
         }
         
-        private int readVoltageFromSysfs() {
-            String[] possiblePaths = {
-                "/sys/class/power_supply/battery/voltage_now",
-                "/sys/class/power_supply/bmc156_battery/voltage_now",
-                "/sys/devices/platform/battery/power_supply/battery/voltage_now"
-            };
-            
-            for (String path : possiblePaths) {
-                try {
-                    File file = new File(path);
-                    if (file.exists() && file.canRead()) {
-                        BufferedReader reader = new BufferedReader(new FileReader(file));
-                        String value = reader.readLine();
-                        reader.close();
-                        
-                        if (value != null && !value.isEmpty()) {
-                            value = value.trim();
-                            long microvolts = Long.parseLong(value);
-                            return (int)(microvolts / 1000); // Convert to millivolts
-                        }
-                    }
-                } catch (FileNotFoundException e) {
-                    // Path doesn't exist
-                } catch (SecurityException e) {
-                    // SELinux blocking access - silent fallback
-                } catch (Exception e) {
-                    // Error reading path - silent fallback
+        private int getBatteryVoltageFromManager() {
+            try {
+                int voltageMv = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_VOLTAGE_NOW);
+                if (voltageMv != Integer.MIN_VALUE) {
+                    // BatteryManager returns in microvolts, convert to millivolts
+                    return voltageMv / 1000;
                 }
+            } catch (Exception e) {
+                System.out.println("[DEBUG] Error getting battery voltage from BatteryManager: " + e.getMessage());
             }
-            return 3700; // Default fallback voltage in mV
+            
+            // Fallback: try to read from remaining sysfs path
+            try {
+                File file = new File("/sys/devices/platform/charger/ADC_Charger_Voltage");
+                if (file.exists() && file.canRead()) {
+                    BufferedReader reader = new BufferedReader(new FileReader(file));
+                    String value = reader.readLine();
+                    reader.close();
+                    
+                    if (value != null && !value.isEmpty()) {
+                        value = value.trim();
+                        long microvolts = Long.parseLong(value);
+                        return (int)(microvolts / 1000);
+                    }
+                }
+            } catch (SecurityException e) {
+                System.out.println("[DEBUG] SELinux blocking access to fallback voltage: " + e.getMessage());
+            } catch (Exception e) {
+                System.out.println("[DEBUG] Error reading fallback voltage: " + e.getMessage());
+            }
+            
+            // Return 0 if no voltage reading available
+            return 0;
         }
         
 
