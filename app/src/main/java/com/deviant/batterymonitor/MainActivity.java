@@ -233,7 +233,19 @@ public class MainActivity extends Activity {
             try {
                 info.append("--- APK INFO ---\n");
                 String apkPath = getPackageInfo();
-                info.append("Path: ").append(apkPath).append("\n\n");
+                info.append("Path: ").append(apkPath).append("\n");
+                
+                // Check APK SELinux domain
+                String selinuxDomain = getSelinuxDomain(apkPath);
+                info.append("SELinux Domain: ").append(selinuxDomain).append("\n");
+                
+                // Check APK label
+                String apkLabel = getApkLabel();
+                info.append("APK Label: ").append(apkLabel).append("\n");
+                
+                // Get debug logs from logcat/dmesg
+                String debugLogs = getDebugLogs();
+                info.append("Debug Logs:\n").append(debugLogs).append("\n\n");
                 
             } catch (Exception e) {
                 info.append("❌ Error generating debug info: ").append(e.getMessage());
@@ -247,6 +259,64 @@ public class MainActivity extends Activity {
                 return getApplicationInfo().sourceDir;
             } catch (Exception e) {
                 return "unknown: " + e.getMessage();
+            }
+        }
+        
+        private String getSelinuxDomain(String apkPath) {
+            try {
+                java.lang.Process process = Runtime.getRuntime().exec("ls -Z " + apkPath);
+                java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+                String line = reader.readLine();
+                if (line != null) {
+                    String[] parts = line.split(":");
+                    if (parts.length >= 3) {
+                        return parts[2];
+                    }
+                }
+                return "unknown";
+            } catch (Exception e) {
+                return "error: " + e.getMessage();
+            }
+        }
+        
+        private String getApkLabel() {
+            try {
+                return getPackageManager().getApplicationLabel(getApplicationInfo()).toString();
+            } catch (Exception e) {
+                return "error: " + e.getMessage();
+            }
+        }
+        
+        private String getDebugLogs() {
+            try {
+                StringBuilder logs = new StringBuilder();
+                
+                // Get relevant logcat entries
+                java.lang.Process logcatProcess = Runtime.getRuntime().exec("logcat -d -s AndroidRuntime:E System.err:E *:W");
+                java.io.BufferedReader logcatReader = new java.io.BufferedReader(new java.io.InputStreamReader(logcatProcess.getInputStream()));
+                String line;
+                int count = 0;
+                while ((line = logcatReader.readLine()) != null && count < 10) {
+                    logs.append("LOGCAT: ").append(line).append("\n");
+                    count++;
+                }
+                logcatReader.close();
+                
+                // Get dmesg entries (may require root)
+                try {
+                    java.lang.Process dmesgProcess = Runtime.getRuntime().exec("dmesg | tail -5");
+                    java.io.BufferedReader dmesgReader = new java.io.BufferedReader(new java.io.InputStreamReader(dmesgProcess.getInputStream()));
+                    while ((line = dmesgReader.readLine()) != null) {
+                        logs.append("DMESG: ").append(line).append("\n");
+                    }
+                    dmesgReader.close();
+                } catch (Exception e) {
+                    logs.append("DMESG: Access denied (requires root)\n");
+                }
+                
+                return logs.length() > 0 ? logs.toString() : "No relevant logs found";
+            } catch (Exception e) {
+                return "error: " + e.getMessage();
             }
         }
     }
