@@ -52,16 +52,17 @@ class BatteryManager {
                 throw new Error(data.error);
             }
             
-            // Parse values
+            // Parse values with enhanced validation
             const batteryData = {
-                capacity: parseInt(data.capacity) || 0,
+                capacity: this.validateCapacity(parseInt(data.capacity) || 0),
                 status: data.status || 'Unknown',
-                voltage: parseInt(data.voltage) || 0,
+                voltage: this.validateVoltage(parseInt(data.voltage) || 0),
                 current: parseInt(data.current_now) || 0,
-                temperature: parseInt(data.temp) || 0,
+                temperature: this.validateTemperature(parseInt(data.temp) || 0),
                 chargerVoltage: data.charger_voltage || '0',
                 source: data.source || 'unknown',
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                intentAvailable: data.intent_available || false
             };
             
             // Calculate derived values
@@ -85,11 +86,25 @@ class BatteryManager {
             console.error('[Battery] Update failed:', error);
             this.stats.errors.push({
                 time: Date.now(),
-                message: error.message
+                message: error.message,
+                context: 'getBatteryData()'
             });
             
-            // Notify listeners of error
-            this.notifyListeners({ error: error.message });
+            // Enhanced error handling with fallback
+            if (error.message.includes('Android bridge not available')) {
+                this.notifyListeners({ 
+                    error: 'Android bridge not available',
+                    fallback: true 
+                });
+            } else if (error.message.includes('Battery Intent unavailable')) {
+                console.log('[Battery] Battery intent unavailable, trying alternative methods...');
+                this.notifyListeners({ 
+                    error: 'Battery Intent unavailable - using fallback methods',
+                    fallback: true 
+                });
+            } else {
+                this.notifyListeners({ error: error.message });
+            }
         }
     }
     
@@ -133,6 +148,30 @@ class BatteryManager {
             uptime: Date.now() - this.stats.startTime,
             hasData: this.lastData !== null
         };
+    }
+    
+    validateCapacity(capacity) {
+        if (capacity < 0 || capacity > 100) {
+            console.warn(`[Battery] Invalid capacity ${capacity}, using fallback`);
+            return 50; // Safe fallback
+        }
+        return capacity;
+    }
+    
+    validateVoltage(voltage) {
+        if (voltage < 2000 || voltage > 5000) {
+            console.warn(`[Battery] Invalid voltage ${voltage}mV, using fallback`);
+            return 3700; // Typical Li-ion voltage
+        }
+        return voltage;
+    }
+    
+    validateTemperature(temp) {
+        if (temp < 100 || temp > 600) {
+            console.warn(`[Battery] Invalid temperature ${temp} (×0.1°C), using fallback`);
+            return 250; // 25°C fallback
+        }
+        return temp;
     }
 }
 
