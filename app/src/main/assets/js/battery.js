@@ -56,10 +56,10 @@ class BatteryManager {
             const batteryData = {
                 capacity: parseInt(data.capacity) || 0,
                 status: data.status || 'Unknown',
-                voltage: parseInt(data.voltage) || 0,
+                voltage: parseInt(data.voltage) || 1000,
                 current: parseInt(data.current_now) || 0,
                 temperature: parseInt(data.temp) || 0,
-                chargerVoltage: data.charger_voltage || '0',
+                chargerVoltage: data.charger_voltage || '1000',
                 source: data.source || 'unknown',
                 timestamp: Date.now()
             };
