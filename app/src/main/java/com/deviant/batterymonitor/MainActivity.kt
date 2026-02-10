@@ -26,28 +26,51 @@ class MainActivity : AppCompatActivity() {
         webView = findViewById(R.id.activity_main_webview)
         webView.apply {
             settings.javaScriptEnabled = true
-            webViewClient = WebViewClient()
+            settings.domStorageEnabled = true
+            webViewClient = object : WebViewClient() {
+                override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+                    super.onReceivedError(view, errorCode, description, failingUrl)
+                    // Load fallback content on error
+                    loadUrl("data:text/html,<html><body><h2>WebView Error</h2><p>Description: $description</p></body></html>")
+                }
+            }
         }
 
         // Injeksi JavaScript interface
         webView.addJavascriptInterface(object {
             @android.webkit.JavascriptInterface
             fun getBatteryData(): String {
-                return getBatteryStatusJSON()
+                return try {
+                    getBatteryStatusJSON()
+                } catch (e: Exception) {
+                    """{"error": "${e.message ?: "Unknown error"}"}"""
+                }
             }
 
             @android.webkit.JavascriptInterface
             fun getDebugInfo(): String {
-                return getDeviceDebugInfo()
+                return try {
+                    getDeviceDebugInfo()
+                } catch (e: Exception) {
+                    "Debug error: ${e.message ?: "Unknown error"}"
+                }
             }
 
             @android.webkit.JavascriptInterface
             fun getSystemTheme(): String {
-                return "dark" // Force dark theme for Material Design 3
+                return try {
+                    "dark" // Force dark theme for Material Design 3
+                } catch (e: Exception) {
+                    "dark"
+                }
             }
         }, "Android")
 
-        webView.loadUrl("file:///android_asset/index.html")
+        try {
+            webView.loadUrl("file:///android_asset/index.html")
+        } catch (e: Exception) {
+            webView.loadUrl("data:text/html,<html><body><h2>Asset Loading Error</h2><p>${e.message}</p></body></html>")
+        }
 
         setupBatteryBroadcast()
     }
@@ -55,7 +78,13 @@ class MainActivity : AppCompatActivity() {
     private fun setupBatteryBroadcast() {
         batteryReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                webView.evaluateJavascript("if(typeof updateBattery === 'function') updateBattery();", null)
+                try {
+                    if (::webView.isInitialized) {
+                        webView.evaluateJavascript("if(typeof updateBattery === 'function') updateBattery();", null)
+                    }
+                } catch (e: Exception) {
+                    // Ignore JavaScript evaluation errors to prevent crashes
+                }
             }
         }
         registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
@@ -109,14 +138,21 @@ class MainActivity : AppCompatActivity() {
         return try {
             val voltageFile = File("/sys/devices/platform/charger/ADC_Charger_Voltage")
             if (voltageFile.exists() && voltageFile.canRead()) {
-                val voltageNow = voltageFile.readText().trim().toIntOrNull() ?: 0
-                // voltage_now dalam microvolts, konversi ke millivolts
-                voltageNow / 1000
+                val voltageText = voltageFile.readText().trim()
+                val voltageNow = voltageText.toIntOrNull()
+                if (voltageNow != null && voltageNow > 0) {
+                    // voltage_now dalam microvolts, konversi ke millivolts
+                    voltageNow / 1000
+                } else {
+                    1000 // Invalid value, fallback ke 1V
+                }
             } else {
                 1000 // Fallback ke 1V (1000 mV) untuk non-root
             }
+        } catch (e: SecurityException) {
+            1000 // Permission denied, fallback
         } catch (e: Exception) {
-            1000 // Fallback ke 1V jika error
+            1000 // Any other error, fallback
         }
     }
 
@@ -153,8 +189,12 @@ class MainActivity : AppCompatActivity() {
         
         // Test 5: SELinux context
         try {
-            val selinux = Runtime.getRuntime().exec("getenforce").inputStream.bufferedReader().readText().trim()
+            val process = Runtime.getRuntime().exec("getenforce")
+            val selinux = process.inputStream.bufferedReader().readText().trim()
             debugLines.add("SELinux: $selinux")
+            process.destroy()
+        } catch (e: SecurityException) {
+            debugLines.add("SELinux: permission denied")
         } catch (e: Exception) {
             debugLines.add("SELinux: unknown")
         }
@@ -164,6 +204,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        batteryReceiver?.let { unregisterReceiver(it) }
+        try {
+            batteryReceiver?.let { 
+                unregisterReceiver(it) 
+                batteryReceiver = null
+            }
+        } catch (e: Exception) {
+            // Ignore unregistration errors
+        }
     }
 }
