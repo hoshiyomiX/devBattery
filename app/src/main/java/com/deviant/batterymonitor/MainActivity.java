@@ -13,6 +13,9 @@ import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.res.Configuration;
 import android.widget.Toast;
+import android.os.Process;
+import android.system.OsConstants;
+import android.system.Os;
 import org.json.JSONObject;
 import java.io.*;
 import java.text.SimpleDateFormat;
@@ -231,9 +234,27 @@ public class MainActivity extends Activity {
             StringBuilder info = new StringBuilder();
             
             try {
-                info.append("--- APK INFO ---\n");
+                info.append("=== APK DEBUG INFORMATION ===\n\n");
+                
+                // APK Path
                 String apkPath = getPackageInfo();
-                info.append("Path: ").append(apkPath).append("\n\n");
+                info.append("📦 APK PATH:\n");
+                info.append("  ").append(apkPath).append("\n\n");
+                
+                // SELinux Domain Check
+                info.append("🔒 SELINUX DOMAIN:\n");
+                String selinuxDomain = getSelinuxDomain();
+                info.append("  ").append(selinuxDomain).append("\n\n");
+                
+                // APK File SELinux Context
+                info.append("📁 APK FILE SELINUX CONTEXT:\n");
+                String selinuxContext = getApkSelinuxContext(apkPath);
+                info.append("  ").append(selinuxContext).append("\n\n");
+                
+                // System Debug Logs
+                info.append("📋 SYSTEM DEBUG LOGS:\n");
+                String debugLogs = getSystemDebugLogs();
+                info.append(debugLogs).append("\n");
                 
             } catch (Exception e) {
                 info.append("❌ Error generating debug info: ").append(e.getMessage());
@@ -248,6 +269,120 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 return "unknown: " + e.getMessage();
             }
+        }
+        
+        private String getSelinuxDomain() {
+            try {
+                int pid = Process.myPid();
+                String domain = "unknown";
+                
+                // Try to read from /proc/self/attr/current
+                File attrFile = new File("/proc/self/attr/current");
+                if (attrFile.exists() && attrFile.canRead()) {
+                    BufferedReader reader = new BufferedReader(new FileReader(attrFile));
+                    String line = reader.readLine();
+                    reader.close();
+                    if (line != null && !line.isEmpty()) {
+                        domain = line.trim();
+                    }
+                }
+                
+                return domain;
+            } catch (Exception e) {
+                return "error: " + e.getMessage();
+            }
+        }
+        
+        private String getApkSelinuxContext(String apkPath) {
+            try {
+                if (apkPath.equals("unknown") || apkPath.startsWith("error")) {
+                    return "cannot determine - APK path unknown";
+                }
+                
+                File apkFile = new File(apkPath);
+                if (!apkFile.exists()) {
+                    return "file not found: " + apkPath;
+                }
+                
+                // Try to get SELinux context using libcore
+                try {
+                    String context = Os.getfilecon(apkPath);
+                    if (context != null && !context.isEmpty()) {
+                        return context;
+                    }
+                } catch (Exception e) {
+                    // Fallback to manual check
+                }
+                
+                // Fallback: try to read from /proc/self/mountinfo for mount context
+                return "context unavailable - permission denied";
+                
+            } catch (Exception e) {
+                return "error: " + e.getMessage();
+            }
+        }
+        
+        private String getSystemDebugLogs() {
+            StringBuilder logs = new StringBuilder();
+            
+            try {
+                // Try to read logcat for SELinux denials
+                String[] logcatCmd = {"logcat", "-d", "-s", "audit:*", "*:E"};
+                Process logcatProcess = Runtime.getRuntime().exec(logcatCmd);
+                
+                BufferedReader logcatReader = new BufferedReader(
+                    new InputStreamReader(logcatProcess.getInputStream()));
+                
+                String line;
+                int logCount = 0;
+                while ((line = logcatReader.readLine()) != null && logCount < 5) {
+                    if (line.toLowerCase().contains("selinux") || 
+                        line.toLowerCase().contains("avc: denied") ||
+                        line.toLowerCase().contains("perm=deny")) {
+                        logs.append("  ").append(line.trim()).append("\n");
+                        logCount++;
+                    }
+                }
+                logcatReader.close();
+                logcatProcess.destroy();
+                
+                if (logCount == 0) {
+                    logs.append("  No recent SELinux denials found\n");
+                }
+                
+                // Try to read dmesg for kernel messages
+                try {
+                    String[] dmesgCmd = {"dmesg"};
+                    Process dmesgProcess = Runtime.getRuntime().exec(dmesgCmd);
+                    
+                    BufferedReader dmesgReader = new BufferedReader(
+                        new InputStreamReader(dmesgProcess.getInputStream()));
+                    
+                    logs.append("\n");
+                    int dmesgCount = 0;
+                    while ((line = dmesgReader.readLine()) != null && dmesgCount < 3) {
+                        if (line.toLowerCase().contains("selinux") || 
+                            line.toLowerCase().contains("audit")) {
+                            logs.append("  KERNEL: ").append(line.trim()).append("\n");
+                            dmesgCount++;
+                        }
+                    }
+                    dmesgReader.close();
+                    dmesgProcess.destroy();
+                    
+                    if (dmesgCount == 0) {
+                        logs.append("  No relevant kernel messages found\n");
+                    }
+                    
+                } catch (Exception e) {
+                    logs.append("  dmesg access denied: ").append(e.getMessage()).append("\n");
+                }
+                
+            } catch (Exception e) {
+                logs.append("  Error reading system logs: ").append(e.getMessage()).append("\n");
+            }
+            
+            return logs.toString();
         }
     }
     
