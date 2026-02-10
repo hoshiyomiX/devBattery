@@ -247,8 +247,9 @@ public class MainActivity extends Activity {
                 System.out.println("[DEBUG] Error reading fallback voltage: " + e.getMessage());
             }
             
-            // Return 0 if no voltage reading available
-            return 0;
+            // Fallback to 1000mV same as charger voltage when device not charging
+            System.out.println("[DEBUG] Using fallback battery voltage: 1000mV");
+            return 1000;
         }
         
 
