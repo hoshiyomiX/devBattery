@@ -195,14 +195,32 @@ public class MainActivity extends Activity {
         }
         
         private int getBatteryVoltageFromManager() {
+            // BATTERY_PROPERTY_VOLTAGE_NOW requires API 23+, use fallback for API 21
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                try {
+                    int voltageMv = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_VOLTAGE_NOW);
+                    if (voltageMv != Integer.MIN_VALUE) {
+                        // BatteryManager returns in microvolts, convert to millivolts
+                        return voltageMv / 1000;
+                    }
+                } catch (Exception e) {
+                    System.out.println("[DEBUG] Error getting battery voltage from BatteryManager: " + e.getMessage());
+                }
+            }
+            
+            // For API < 23 or fallback, use battery intent
             try {
-                int voltageMv = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_VOLTAGE_NOW);
-                if (voltageMv != Integer.MIN_VALUE) {
-                    // BatteryManager returns in microvolts, convert to millivolts
-                    return voltageMv / 1000;
+                IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                Intent batteryStatus = context.registerReceiver(null, filter);
+                if (batteryStatus != null) {
+                    int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+                    if (voltageMv > 0) {
+                        // EXTRA_VOLTAGE is already in millivolts
+                        return voltageMv;
+                    }
                 }
             } catch (Exception e) {
-                System.out.println("[DEBUG] Error getting battery voltage from BatteryManager: " + e.getMessage());
+                System.out.println("[DEBUG] Error getting battery voltage from intent: " + e.getMessage());
             }
             
             // Fallback: try to read from remaining sysfs path
