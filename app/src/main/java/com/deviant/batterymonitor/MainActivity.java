@@ -13,7 +13,6 @@ import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.res.Configuration;
 import android.widget.Toast;
-import android.util.Log;
 import org.json.JSONObject;
 import java.io.*;
 import java.text.SimpleDateFormat;
@@ -59,9 +58,7 @@ public class MainActivity extends Activity {
         boolean isDark = (newConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
         String theme = isDark ? "dark" : "light";
         
-        if (BuildConfig.DEBUG) {
-            Log.d("BatteryMonitor", "[THEME] System theme changed to: " + theme);
-        }
+        System.out.println("[THEME] System theme changed to: " + theme);
         
         if (webView != null) {
             runOnUiThread(() -> {
@@ -109,11 +106,6 @@ public class MainActivity extends Activity {
                 JSONObject data = new JSONObject();
                 updateCount++;
                 
-                // Debug logging for battery data
-                if (BuildConfig.DEBUG) {
-                    Log.d("BatteryMonitor", "Getting battery data - Update count: " + updateCount);
-                }
-                
                 IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
                 Intent batteryStatus = registerReceiver(null, ifilter);
                 
@@ -152,20 +144,10 @@ public class MainActivity extends Activity {
                     batteryHistory.remove(0);
                 }
                 
-                // Debug logging for battery values
-                if (BuildConfig.DEBUG) {
-                    Log.d("BatteryMonitor", "Battery Data: " + historyEntry);
-                    Log.d("BatteryMonitor", "Capacity: " + capacity + "%, Status: " + statusStr + 
-                          ", Voltage: " + (voltageMv/1000.0) + "V, Current: " + (currentUa/1000) + "mA");
-                }
-                
 
                 
                 return data.toString();
             } catch (Exception e) {
-                if (BuildConfig.DEBUG) {
-                    Log.e("BatteryMonitor", "Error getting battery data", e);
-                }
                 e.printStackTrace();
                 return "{\"error\":\"" + e.getMessage() + "\"}";
             }
@@ -178,10 +160,6 @@ public class MainActivity extends Activity {
                 "/sys/class/power_supply/ac/voltage_now",
                 "/sys/class/power_supply/battery/input_voltage_now"
             };
-            
-            if (BuildConfig.DEBUG) {
-                Log.d("BatteryMonitor", "Reading charger voltage from " + possiblePaths.length + " possible paths");
-            }
             
             for (String path : possiblePaths) {
                 try {
@@ -201,17 +179,11 @@ public class MainActivity extends Activity {
                         }
                     }
                 } catch (FileNotFoundException e) {
-                    if (BuildConfig.DEBUG) {
-                        Log.d("BatteryMonitor", "Path not found: " + path);
-                    }
+                    // Path doesn't exist
                 } catch (SecurityException e) {
-                    if (BuildConfig.DEBUG) {
-                        Log.w("BatteryMonitor", "SELinux blocking access to: " + path);
-                    }
+                    // SELinux blocking access - silent fallback
                 } catch (Exception e) {
-                    if (BuildConfig.DEBUG) {
-                        Log.w("BatteryMonitor", "Error reading path " + path + ": " + e.getMessage());
-                    }
+                    // Error reading path - silent fallback
                 }
             }
             return "0";
@@ -232,13 +204,9 @@ public class MainActivity extends Activity {
                     }
                 }
             } catch (SecurityException e) {
-                if (BuildConfig.DEBUG) {
-                    Log.w("BatteryMonitor", "SELinux blocking access to voltage file");
-                }
+                // SELinux blocking - silent fallback
             } catch (Exception e) {
-                if (BuildConfig.DEBUG) {
-                    Log.w("BatteryMonitor", "Failed to read voltage: " + e.getMessage());
-                }
+                // Failed to read voltage - silent fallback
             }
             return 1000;
         }
@@ -265,32 +233,9 @@ public class MainActivity extends Activity {
             try {
                 info.append("--- APK INFO ---\n");
                 String apkPath = getPackageInfo();
-                info.append("Path: ").append(apkPath).append("\n");
-                info.append("Build Type: ").append(BuildConfig.DEBUG ? "DEBUG" : "RELEASE").append("\n");
-                info.append("Update Count: ").append(updateCount).append("\n");
-                info.append("Battery History Size: ").append(batteryHistory.size()).append("\n");
-                info.append("Runtime: ").append((System.currentTimeMillis() - startTime) / 1000).append(" seconds\n");
-                info.append("Android Version: ").append(Build.VERSION.RELEASE).append("\n");
-                info.append("SDK Version: ").append(Build.VERSION.SDK_INT).append("\n\n");
-                
-                // Show recent battery history in debug mode
-                if (BuildConfig.DEBUG && !batteryHistory.isEmpty()) {
-                    info.append("--- RECENT BATTERY HISTORY ---\n");
-                    for (int i = Math.max(0, batteryHistory.size() - 3); i < batteryHistory.size(); i++) {
-                        info.append(batteryHistory.get(i)).append("\n");
-                    }
-                    info.append("\n");
-                }
-                
-                // Log debug info access
-                if (BuildConfig.DEBUG) {
-                    Log.d("BatteryMonitor", "Debug info requested - Build: " + (BuildConfig.DEBUG ? "DEBUG" : "RELEASE"));
-                }
+                info.append("Path: ").append(apkPath).append("\n\n");
                 
             } catch (Exception e) {
-                if (BuildConfig.DEBUG) {
-                    Log.e("BatteryMonitor", "Error generating debug info", e);
-                }
                 info.append("❌ Error generating debug info: ").append(e.getMessage());
             }
             
