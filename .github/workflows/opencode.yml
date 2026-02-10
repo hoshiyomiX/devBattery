@@ -47,9 +47,9 @@ jobs:
           agent: build
           prompt: |
             {
-              "temperature": 0.07,
-              "steps": 11,
-              "reasoningEffort": "medium",
+              "temperature": 0.05,
+              "steps": 8,
+              "reasoningEffort": "high",
               "textVerbosity": "low",
               "top_p": 0.90
             }
