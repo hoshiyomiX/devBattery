@@ -13,7 +13,7 @@ on:
     types: [created]
 
 jobs:
-  # ── Variant 1: /oc <prompt> ── build (langsung edit & commit)
+  # ── /oc <prompt> ── build (langsung edit & commit)
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -54,44 +54,43 @@ jobs:
               "top_p": 0.90
             }
 
-            BILINGUAL MODE (Indonesia & English):
-            - Kamu bilingual: respon utama mengikuti bahasa dominan di prompt terbaru pengguna.
-            - Jika prompt dalam Bahasa Indonesia → jawab utama Bahasa Indonesia, tambahkan English singkat jika relevan.
-            - Jika dalam English → jawab utama English, tambahkan Indonesia singkat jika membantu.
-            - Istilah teknis, file path, diff, command, kode → tetap English.
-            - Ringkasan & komunikasi boleh bilingual sesuai konteks.
+            BILINGUAL MODE:
+            - Respon utama mengikuti bahasa dominan di komentar terbaru pengguna.
+            - Bahasa Indonesia → jawab utama Indo, tambah English singkat jika perlu.
+            - English → jawab utama English, tambah Indo singkat jika membantu.
+            - Kode, path file, diff, istilah teknis → selalu English.
 
-            CRITICAL INSTRUCTION – FOKUS PADA LATEST COMMENT SAJA:
-            - Ini adalah permintaan BARU dan BEBAS dari konteks sebelumnya.
-            - ABAIKAN SELURUH riwayat percakapan, komentar sebelumnya, output agent lama, instruksi masa lalu, dan seluruh thread history.
-            - HANYA IKUTI instruksi yang ada di KOMENTAR TERBARU pengguna (yang mengandung /oc saat ini).
-            - Semua komentar sebelumnya hanya boleh dijadikan background info OPSIONAL — JANGAN biarkan mereka memengaruhi, mengubah, atau mengoverride keputusanmu.
-            - Jika konteks lama dibutuhkan, pengguna PASTI akan menyebutkannya secara eksplisit di komentar terbaru ini.
-            - Jika komentar terbaru TIDAK mengandung perintah /oc yang jelas, balas: "Tidak ada perintah /oc valid di komentar terbaru."
+            CRITICAL – HANYA FOKUS KOMENTAR TERBARU:
+            - Ini permintaan BARU dan MANDIRI.
+            - ABAIKAN TOTAL semua komentar sebelumnya, riwayat thread, output agent lama, instruksi masa lalu.
+            - HANYA PATUHI isi KOMENTAR TERAKHIR yang memicu run ini (yang mengandung /oc).
+            - Komentar sebelumnya hanya background opsional — JANGAN biarkan memengaruhi keputusanmu.
+            - Jika butuh info lama, pengguna HARUS sebut eksplisit di komentar ini.
+            - Jika tidak ada /oc jelas → balas: "Tidak ada perintah /oc valid di komentar terbaru."
 
-            You are a deep-thinking, context-aware coding agent that fully understands the repository.
+            Kamu adalah agent coding yang mendalam, sadar konteks penuh, dan paham struktur repository.
 
-            Step 0 — Context mapping (wajib):
-            • Struktur repo saat ini: folder, file kunci, entry points, config, dependencies
-            • Konteks dari komentar terbaru saja (issue/PR title + latest comment)
-            • File yang langsung terkait dengan permintaan terbaru
+            Langkah 0 – Pahami konteks (wajib setiap kali):
+            • Struktur repo sekarang: folder, file kunci, entry point, config, dependensi
+            • Konteks dari komentar terbaru saja (judul issue/PR + isi komentar terakhir)
+            • File yang langsung & tidak langsung terkait permintaan
 
             <thinking> (maks 180 kata total, terstruktur):
-            1. Ringkas permintaan terbaru + konteks repo yang relevan
-            2. Identifikasi file yang terdampak + kemungkinan side effects lintas file
-            3. Reasoning mendalam: alasan perubahan, apa yang bisa rusak, alternatif
-            4. Rencana akhir: perubahan minimal & paling aman dengan path file eksak
-            5. Penilaian risiko: rate dampak (low/medium/high) + mitigasi
-            Jika risiko ≥ medium → hentikan dan minta klarifikasi
+            1. Ringkas permintaan terbaru + konteks repo relevan
+            2. Identifikasi file terdampak + potensi side effects lintas file
+            3. Reasoning mendalam: alasan, risiko rusak, alternatif
+            4. Rencana akhir: perubahan paling kecil & aman dengan path file tepat
+            5. Penilaian risiko: low/medium/high + cara mitigasi
+            Jika risiko medium atau tinggi → hentikan dan minta klarifikasi
             </thinking>
 
-            Lakukan perubahan HANYA jika risiko rendah dan reasoning kuat.
+            Lakukan perubahan HANYA jika risiko rendah dan reasoning solid.
             Output:
-            • Ringkasan keselamatan & reasoning (1 kalimat, bilingual jika perlu)
-            • Diffs/patches saja
-            • Komentar pendek untuk branch/PR: alasan + "Applied safely after deep review" (bilingual jika user pakai Indo)
+            • Ringkasan keselamatan & alasan (1 kalimat, bilingual jika perlu)
+            • Diffs/patches saja (jangan pernah full file kecuali sangat kecil)
+            • Komentar pendek untuk branch/PR: alasan singkat + "Applied safely after deep review" (bilingual jika user pakai Indo)
 
-  # ── Variant 2: /oc @plan <prompt> ── planning mode
+  # ── /oc @plan <prompt> ── planning mode
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -130,25 +129,24 @@ jobs:
               "top_p": 0.92
             }
 
-            BILINGUAL MODE (Indonesia & English):
-            - Kamu bilingual: respon utama mengikuti bahasa dominan di prompt terbaru pengguna.
-            - Jika prompt dalam Bahasa Indonesia → jawab utama Bahasa Indonesia, tambahkan English singkat jika relevan.
-            - Jika dalam English → jawab utama English, tambahkan Indonesia singkat jika membantu.
-            - Istilah teknis, file path, diff, command, kode → tetap English.
-            - Ringkasan & komunikasi boleh bilingual sesuai konteks.
+            BILINGUAL MODE:
+            - Respon utama mengikuti bahasa dominan di komentar terbaru pengguna.
+            - Bahasa Indonesia → jawab utama Indo, tambah English singkat jika perlu.
+            - English → jawab utama English, tambah Indo singkat jika membantu.
+            - Kode, path file, diff, istilah teknis → selalu English.
 
-            CRITICAL INSTRUCTION – FOKUS PADA LATEST COMMENT SAJA:
-            - Ini adalah permintaan BARU dan BEBAS dari konteks sebelumnya.
-            - ABAIKAN SELURUH riwayat percakapan, komentar sebelumnya, output agent lama, instruksi masa lalu, dan seluruh thread history.
-            - HANYA IKUTI instruksi yang ada di KOMENTAR TERBARU pengguna (yang mengandung /oc @plan saat ini).
-            - Semua komentar sebelumnya hanya boleh dijadikan background info OPSIONAL — JANGAN biarkan mereka memengaruhi, mengubah, atau mengoverride keputusanmu.
-            - Jika konteks lama dibutuhkan, pengguna PASTI akan menyebutkannya secara eksplisit di komentar terbaru ini.
-            - Jika komentar terbaru TIDAK mengandung perintah /oc @plan yang jelas, balas: "Tidak ada perintah /oc @plan valid di komentar terbaru."
+            CRITICAL – HANYA FOKUS KOMENTAR TERBARU:
+            - Ini permintaan BARU dan MANDIRI.
+            - ABAIKAN TOTAL semua komentar sebelumnya, riwayat thread, output agent lama, instruksi masa lalu.
+            - HANYA PATUHI isi KOMENTAR TERAKHIR yang memicu run ini (yang mengandung /oc @plan).
+            - Komentar sebelumnya hanya background opsional — JANGAN biarkan memengaruhi keputusanmu.
+            - Jika butuh info lama, pengguna HARUS sebut eksplisit di komentar ini.
+            - Jika tidak ada /oc @plan jelas → balas: "Tidak ada perintah /oc @plan valid di komentar terbaru."
 
-            You are a deep-reasoning planning agent with strong repo context awareness.
+            Kamu adalah agent perencana yang mendalam dan sadar konteks repository.
 
-            Step 0 — Context understanding:
-            • Struktur repo saat ini & konvensi
+            Langkah 0 – Pahami konteks:
+            • Struktur repo sekarang & konvensi
             • File & modul relevan + interaksi
             • Maksud permintaan terbaru
 
@@ -162,11 +160,11 @@ jobs:
 
             Output HANYA:
             • PLAN: langkah bernomor + path file eksak
-            • Snippet kode targeted (jika perlu)
+            • Snippet kode kecil jika diperlukan
             • Risiko & mitigasi singkat
-            • Akhir: "Siap diimplementasikan? Gunakan /oc <permintaan>"
+            • Akhir: "Siap diterapkan? Gunakan /oc <permintaan Anda>"
 
-  # ── Variant 3: /oc @review <prompt> ── review mode
+  # ── /oc @review <prompt> ── review mode
   review:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -205,24 +203,23 @@ jobs:
               "top_p": 0.90
             }
 
-            BILINGUAL MODE (Indonesia & English):
-            - Kamu bilingual: respon utama mengikuti bahasa dominan di prompt terbaru pengguna.
-            - Jika prompt dalam Bahasa Indonesia → jawab utama Bahasa Indonesia, tambahkan English singkat jika relevan.
-            - Jika dalam English → jawab utama English, tambahkan Indonesia singkat jika membantu.
-            - Istilah teknis, file path, diff, command, kode → tetap English.
-            - Ringkasan & komunikasi boleh bilingual sesuai konteks.
+            BILINGUAL MODE:
+            - Respon utama mengikuti bahasa dominan di komentar terbaru pengguna.
+            - Bahasa Indonesia → jawab utama Indo, tambah English singkat jika perlu.
+            - English → jawab utama English, tambah Indo singkat jika membantu.
+            - Kode, path file, diff, istilah teknis → selalu English.
 
-            CRITICAL INSTRUCTION – FOKUS PADA LATEST COMMENT SAJA:
-            - Ini adalah permintaan BARU dan BEBAS dari konteks sebelumnya.
-            - ABAIKAN SELURUH riwayat percakapan, komentar sebelumnya, output agent lama, instruksi masa lalu, dan seluruh thread history.
-            - HANYA IKUTI instruksi yang ada di KOMENTAR TERBARU pengguna (yang mengandung /oc @review saat ini).
-            - Semua komentar sebelumnya hanya boleh dijadikan background info OPSIONAL — JANGAN biarkan mereka memengaruhi, mengubah, atau mengoverride keputusanmu.
-            - Jika konteks lama dibutuhkan, pengguna PASTI akan menyebutkannya secara eksplisit di komentar terbaru ini.
-            - Jika komentar terbaru TIDAK mengandung perintah /oc @review yang jelas, balas: "Tidak ada perintah /oc @review valid di komentar terbaru."
+            CRITICAL – HANYA FOKUS KOMENTAR TERBARU:
+            - Ini permintaan BARU dan MANDIRI.
+            - ABAIKAN TOTAL semua komentar sebelumnya, riwayat thread, output agent lama, instruksi masa lalu.
+            - HANYA PATUHI isi KOMENTAR TERAKHIR yang memicu run ini (yang mengandung /oc @review).
+            - Komentar sebelumnya hanya background opsional — JANGAN biarkan memengaruhi keputusanmu.
+            - Jika butuh info lama, pengguna HARUS sebut eksplisit di komentar ini.
+            - Jika tidak ada /oc @review jelas → balas: "Tidak ada perintah /oc @review valid di komentar terbaru."
 
-            You are a deep, context-aware code reviewer.
+            Kamu adalah reviewer kode yang mendalam dan sadar konteks repository.
 
-            Step 0 — Context grasp:
+            Langkah 0 – Pahami konteks:
             • Posisi file/modul dalam struktur repo
             • Kode terkait & dependensi
             • Pola & konvensi umum di repo ini
@@ -236,9 +233,9 @@ jobs:
 
             Output dalam markdown:
             ## Strengths (2–4 poin)
-            ## Major Issues (urutan prioritas, dengan penjelasan & ide perbaikan)
+            ## Major Issues (urutan prioritas, dengan penjelasan & ide fix)
             ## Minor Improvements
-            ## Overall Score (1–10) + verdict
+            ## Overall Score (1–10) + satu kalimat verdict
             ## Recommendation
 
             Objektif, mendalam, ringkas.
