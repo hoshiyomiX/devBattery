@@ -275,6 +275,28 @@ public class MainActivity extends Activity {
             try {
                 info.append("=== APK DEBUG INFORMATION ===\n\n");
                 
+                // Voltage Source Data
+                info.append("⚡ VOLTAGE SOURCE DATA:\n");
+                try {
+                    IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                    Intent batteryStatus = MainActivity.this.registerReceiver(null, ifilter);
+                    if (batteryStatus != null) {
+                        int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                        String voltageSource = (status == BatteryManager.BATTERY_STATUS_CHARGING) ? "charger" : "battery";
+                        String chargerVoltage = readChargerVoltageDirect();
+                        int batteryVoltage = getBatteryVoltageFromManager();
+                        
+                        info.append("  Source: ").append(voltageSource).append("\n");
+                        info.append("  Charger Voltage: ").append(chargerVoltage).append("mV\n");
+                        info.append("  Battery Voltage: ").append(batteryVoltage).append("mV\n");
+                    } else {
+                        info.append("  Battery status unavailable\n");
+                    }
+                } catch (Exception e) {
+                    info.append("  Error: ").append(e.getMessage()).append("\n");
+                }
+                info.append("\n");
+                
                 // APK Path
                 String apkPath = getPackageInfo();
                 info.append("📦 APK PATH:\n");
