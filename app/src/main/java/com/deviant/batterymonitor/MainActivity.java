@@ -129,7 +129,7 @@ public class MainActivity extends Activity {
                     chargerVoltage = readChargerVoltageDirect();
                     voltageMv = Integer.parseInt(chargerVoltage);
                 } else {
-                    voltageMv = readVoltageFromSysfs();
+                    voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
                 }
                 
                 data.put("capacity", String.valueOf(capacity));
