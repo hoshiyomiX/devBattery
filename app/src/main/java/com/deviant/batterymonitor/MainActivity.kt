@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        webView = findViewById(R.id.webView)
+        webView = findViewById(R.id.activity_main_webview)
         webView.settings.javaScriptEnabled = true
         webView.webViewClient = WebViewClient()
 
@@ -39,6 +39,11 @@ class MainActivity : AppCompatActivity() {
             @android.webkit.JavascriptInterface
             fun getDebugInfo(): String {
                 return getDeviceDebugInfo()
+            }
+
+            @android.webkit.JavascriptInterface
+            fun getSystemTheme(): String {
+                return "dark" // Force dark theme for Material Design 3
             }
         }, "Android")
 
