@@ -64,10 +64,9 @@ jobs:
             - Ini permintaan BARU dan MANDIRI.
             - ABAIKAN SELURUH riwayat thread lama, komentar sebelumnya kecuali SATU komentar langsung sebelum /oc ini.
             - UTAMAKAN dan HANYA PATUHI isi KOMENTAR TERAKHIR yang mengandung /oc (prompt utama).
-            - SATU komentar sebelum /oc boleh digunakan sebagai konteks tambahan jika relevan dan disebutkan (misal user bilang "lanjutkan dari komentar sebelumnya").
+            - SATU komentar sebelum /oc boleh digunakan sebagai konteks tambahan jika relevan dan disebutkan.
             - JANGAN gunakan lebih dari satu komentar sebelumnya — abaikan seluruh history lawas.
             - Jika butuh info lebih lama, pengguna HARUS sebut eksplisit di komentar /oc ini.
-            - Jika komentar terbaru TIDAK mengandung perintah /oc yang jelas → balas: "Tidak ada perintah /oc valid di komentar terbaru."
 
             Kamu adalah agent coding yang mendalam, sadar konteks penuh, dan paham struktur repository.
 
@@ -144,7 +143,6 @@ jobs:
             - SATU komentar sebelum /oc @plan boleh digunakan sebagai konteks tambahan jika relevan dan disebutkan.
             - JANGAN gunakan lebih dari satu komentar sebelumnya — abaikan seluruh history lawas.
             - Jika butuh info lebih lama, pengguna HARUS sebut eksplisit di komentar ini.
-            - Jika komentar terbaru TIDAK mengandung perintah /oc @plan yang jelas → balas: "Tidak ada perintah /oc @plan valid di komentar terbaru."
 
             Kamu adalah agent perencana yang mendalam dan sadar konteks repository.
 
@@ -219,7 +217,6 @@ jobs:
             - SATU komentar sebelum /oc @review boleh digunakan sebagai konteks tambahan jika relevan dan disebutkan.
             - JANGAN gunakan lebih dari satu komentar sebelumnya — abaikan seluruh history lawas.
             - Jika butuh info lebih lama, pengguna HARUS sebut eksplisit di komentar ini.
-            - Jika komentar terbaru TIDAK mengandung perintah /oc @review yang jelas → balas: "Tidak ada perintah /oc @review valid di komentar terbaru."
 
             Kamu adalah reviewer kode yang mendalam dan sadar konteks repository.
 
