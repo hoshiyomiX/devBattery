@@ -198,7 +198,7 @@ public class MainActivity extends Activity {
             // BATTERY_PROPERTY_VOLTAGE_NOW requires API 23+, use fallback for API 21
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                 try {
-                    int voltageMv = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_VOLTAGE_NOW);
+                    int voltageMv = batteryManager.getIntProperty(4); // BATTERY_PROPERTY_VOLTAGE_NOW = 4
                     if (voltageMv != Integer.MIN_VALUE) {
                         // BatteryManager returns in microvolts, convert to millivolts
                         return voltageMv / 1000;
@@ -211,7 +211,7 @@ public class MainActivity extends Activity {
             // For API < 23 or fallback, use battery intent
             try {
                 IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-                Intent batteryStatus = context.registerReceiver(null, filter);
+                Intent batteryStatus = MainActivity.this.registerReceiver(null, filter);
                 if (batteryStatus != null) {
                     int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
                     if (voltageMv > 0) {
