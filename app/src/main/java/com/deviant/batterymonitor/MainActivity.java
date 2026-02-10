@@ -121,12 +121,15 @@ public class MainActivity extends Activity {
                 int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
                 String statusStr = getStatusString(status);
                 int currentUa = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-                int voltageMv = readVoltageFromSysfs();
+                String chargerVoltage = "0";
+                int voltageMv;
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
                 
-                String chargerVoltage = "0";
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
                     chargerVoltage = readChargerVoltageDirect();
+                    voltageMv = Integer.parseInt(chargerVoltage);
+                } else {
+                    voltageMv = readVoltageFromSysfs();
                 }
                 
                 data.put("capacity", String.valueOf(capacity));
@@ -192,27 +195,7 @@ public class MainActivity extends Activity {
             return "0";
         }
         
-        private int readVoltageFromSysfs() {
-            try {
-                File file = new File("/sys/devices/platform/charger/ADC_Charger_Voltage");
-                if (file.exists() && file.canRead()) {
-                    BufferedReader reader = new BufferedReader(new FileReader(file));
-                    String value = reader.readLine();
-                    reader.close();
 
-                    if (value != null && !value.isEmpty()) {
-                        value = value.trim();
-                        long microvolts = Long.parseLong(value);
-                        return (int)(microvolts / 1000);
-                    }
-                }
-            } catch (SecurityException e) {
-                // SELinux blocking - silent fallback
-            } catch (Exception e) {
-                // Failed to read voltage - silent fallback
-            }
-            return 1000;
-        }
         
         private String getStatusString(int status) {
             switch (status) {
