@@ -153,10 +153,19 @@ public class MainActivity extends Activity {
                 // Dynamic voltage source data
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
                     data.put("voltage_display_label", "Charging Voltage");
-                    data.put("voltage_source_info", "Source: Charger ADC");
+                    data.put("voltage_source_info", "Source: Charger ADC (sysfs)");
                 } else {
                     data.put("voltage_display_label", "Battery Voltage");
-                    data.put("voltage_source_info", "Source: Battery Manager");
+                    data.put("voltage_source_info", "Source: BatteryManager API (microvolts->mV)");
+                }
+                
+                // Add detailed voltage source debug
+                System.out.println("[VOLTAGE] Debug - Status: " + statusStr + ", Voltage source: " + data.get("voltage_source") + 
+                    ", Value: " + voltageMv + "mV, API Level: " + android.os.Build.VERSION.SDK_INT);
+                if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
+                    System.out.println("[VOLTAGE] Debug - Charger path: /sys/devices/platform/charger/ADC_Charger_Voltage");
+                } else {
+                    System.out.println("[VOLTAGE] Debug - Using BatteryManager.BATTERY_PROPERTY_VOLTAGE_NOW");
                 }
                 
                 String historyEntry = String.format(Locale.US, 
@@ -224,24 +233,24 @@ public class MainActivity extends Activity {
         private int getBatteryVoltageFromManager() {
             System.out.println("[ERROR] Voltage Debug: Starting battery voltage reading, API level: " + android.os.Build.VERSION.SDK_INT);
             
-            // BATTERY_PROPERTY_VOLTAGE_NOW requires API 23+, use fallback for API 21
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            // BATTERY_PROPERTY_VOLTAGE_NOW requires API 21+, not 23
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) {
                 try {
-                    int voltageMv = batteryManager.getIntProperty(4); // BATTERY_PROPERTY_VOLTAGE_NOW = 4
-                    System.out.println("[ERROR] Voltage Debug: BatteryManager raw voltage: " + voltageMv);
-                    if (voltageMv != Integer.MIN_VALUE) {
+                    int voltageUv = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_VOLTAGE_NOW);
+                    System.out.println("[ERROR] Voltage Debug: BatteryManager voltage (microvolts): " + voltageUv);
+                    if (voltageUv > 0) {
                         // BatteryManager returns in microvolts, convert to millivolts
-                        int result = voltageMv / 1000;
+                        int result = voltageUv / 1000;
                         System.out.println("[ERROR] Voltage Debug: BatteryManager converted voltage: " + result + "mV");
                         return result;
                     }
-                    System.out.println("[ERROR] Voltage Debug: BatteryManager returned MIN_VALUE");
+                    System.out.println("[ERROR] Voltage Debug: BatteryManager returned invalid value: " + voltageUv);
                 } catch (Exception e) {
                     System.out.println("[ERROR] Voltage Debug: BatteryManager exception: " + e.getMessage());
                     logDebugError("BatteryVoltage", "BatteryManager error", e.getMessage());
                 }
             } else {
-                System.out.println("[ERROR] Voltage Debug: API < 23, skipping BatteryManager");
+                System.out.println("[ERROR] Voltage Debug: API < 22, skipping BatteryManager");
             }
             
             // For API < 23 or fallback, use battery intent
