@@ -186,46 +186,62 @@ public class MainActivity extends Activity {
             for (String path : possiblePaths) {
                 try {
                     File file = new File(path);
+                    System.out.println("[ERROR] Voltage Debug: Checking path " + path + " exists=" + file.exists() + " readable=" + file.canRead());
+                    
                     if (file.exists() && file.canRead()) {
                         BufferedReader reader = new BufferedReader(new FileReader(file));
                         String value = reader.readLine();
                         reader.close();
                         
+                        System.out.println("[ERROR] Voltage Debug: Raw charger voltage value: '" + value + "'");
+                        
                         if (value != null && !value.isEmpty()) {
                             value = value.trim();
                             if (value.length() > 4) {
                                 long microvolts = Long.parseLong(value);
-                                return String.valueOf(microvolts / 1000);
+                                int millivolts = (int)(microvolts / 1000);
+                                System.out.println("[ERROR] Voltage Debug: Converted charger voltage: " + millivolts + "mV");
+                                return String.valueOf(millivolts);
                             }
+                            System.out.println("[ERROR] Voltage Debug: Using raw charger voltage: " + value + "mV");
                             return value;
                         }
                     }
                 } catch (FileNotFoundException e) {
-                    // Path doesn't exist
+                    System.out.println("[ERROR] Voltage Debug: File not found for " + path + " - " + e.getMessage());
                 } catch (SecurityException e) {
-                    // SELinux blocking access - print to debug logs
+                    System.out.println("[ERROR] Voltage Debug: SELinux blocking access to " + path + " - " + e.getMessage());
                     logDebugError("ChargerVoltage", "SELinux blocking access", e.getMessage());
                 } catch (Exception e) {
-                    // Error reading path - print to debug logs
+                    System.out.println("[ERROR] Voltage Debug: Error reading " + path + " - " + e.getMessage());
                     logDebugError("ChargerVoltage", "Error reading path", e.getMessage());
                 }
             }
-            System.out.println("[DEBUG] Charger voltage fallback - returning 1000mV (1V)");
+            System.out.println("[ERROR] Voltage Debug: All charger voltage paths failed, using fallback 1000mV");
             return "1000"; // Default 1V for power calculation
         }
         
         private int getBatteryVoltageFromManager() {
+            System.out.println("[ERROR] Voltage Debug: Starting battery voltage reading, API level: " + android.os.Build.VERSION.SDK_INT);
+            
             // BATTERY_PROPERTY_VOLTAGE_NOW requires API 23+, use fallback for API 21
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
                 try {
                     int voltageMv = batteryManager.getIntProperty(4); // BATTERY_PROPERTY_VOLTAGE_NOW = 4
+                    System.out.println("[ERROR] Voltage Debug: BatteryManager raw voltage: " + voltageMv);
                     if (voltageMv != Integer.MIN_VALUE) {
                         // BatteryManager returns in microvolts, convert to millivolts
-                        return voltageMv / 1000;
+                        int result = voltageMv / 1000;
+                        System.out.println("[ERROR] Voltage Debug: BatteryManager converted voltage: " + result + "mV");
+                        return result;
                     }
+                    System.out.println("[ERROR] Voltage Debug: BatteryManager returned MIN_VALUE");
                 } catch (Exception e) {
+                    System.out.println("[ERROR] Voltage Debug: BatteryManager exception: " + e.getMessage());
                     logDebugError("BatteryVoltage", "BatteryManager error", e.getMessage());
                 }
+            } else {
+                System.out.println("[ERROR] Voltage Debug: API < 23, skipping BatteryManager");
             }
             
             // For API < 23 or fallback, use battery intent
@@ -234,37 +250,52 @@ public class MainActivity extends Activity {
                 Intent batteryStatus = MainActivity.this.registerReceiver(null, filter);
                 if (batteryStatus != null) {
                     int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+                    System.out.println("[ERROR] Voltage Debug: Battery intent voltage: " + voltageMv + "mV");
                     if (voltageMv > 0) {
                         // EXTRA_VOLTAGE is already in millivolts
+                        System.out.println("[ERROR] Voltage Debug: Using battery intent voltage: " + voltageMv + "mV");
                         return voltageMv;
                     }
+                    System.out.println("[ERROR] Voltage Debug: Battery intent voltage invalid (<= 0)");
+                } else {
+                    System.out.println("[ERROR] Voltage Debug: Battery intent status is null");
                 }
             } catch (Exception e) {
+                System.out.println("[ERROR] Voltage Debug: Battery intent exception: " + e.getMessage());
                 logDebugError("BatteryVoltage", "Intent error", e.getMessage());
             }
             
             // Fallback: try to read from remaining sysfs path
             try {
-                File file = new File("/sys/devices/platform/charger/ADC_Charger_Voltage");
+                String fallbackPath = "/sys/devices/platform/charger/ADC_Charger_Voltage";
+                File file = new File(fallbackPath);
+                System.out.println("[ERROR] Voltage Debug: Battery fallback checking path " + fallbackPath + " exists=" + file.exists() + " readable=" + file.canRead());
+                
                 if (file.exists() && file.canRead()) {
                     BufferedReader reader = new BufferedReader(new FileReader(file));
                     String value = reader.readLine();
                     reader.close();
                     
+                    System.out.println("[ERROR] Voltage Debug: Battery fallback raw value: '" + value + "'");
+                    
                     if (value != null && !value.isEmpty()) {
                         value = value.trim();
                         long microvolts = Long.parseLong(value);
-                        return (int)(microvolts / 1000);
+                        int result = (int)(microvolts / 1000);
+                        System.out.println("[ERROR] Voltage Debug: Battery fallback converted: " + result + "mV");
+                        return result;
                     }
                 }
             } catch (SecurityException e) {
+                System.out.println("[ERROR] Voltage Debug: Battery fallback SELinux blocked: " + e.getMessage());
                 logDebugError("BatteryVoltage", "SELinux blocking fallback access", e.getMessage());
             } catch (Exception e) {
+                System.out.println("[ERROR] Voltage Debug: Battery fallback error: " + e.getMessage());
                 logDebugError("BatteryVoltage", "Error reading fallback", e.getMessage());
             }
             
             // Return 1000mV fallback if no voltage reading available (same as charger fallback)
-            System.out.println("[DEBUG] Battery voltage fallback - returning 1000mV (1V)");
+            System.out.println("[ERROR] Voltage Debug: All battery voltage methods failed, using fallback 1000mV");
             return 1000;
         }
         
