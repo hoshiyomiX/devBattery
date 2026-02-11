@@ -388,62 +388,58 @@
         previousValues[elementId] = newValue;
     }
     
-    // Battery data update
-    function updateBattery() {
-        try {
-            const data = JSON.parse(Android.getBatteryData());
-            if (data.error) {
-                return;
-            }
-            
-            const capacity = parseInt(data.capacity) || 0;
-            const status = data.status || lastStatus || "Unknown";
-            const isCharging = data.is_charging || false;
-            const voltageSource = data.voltage_source || "unknown";
-            
-            // VOLTAGE: Backend now sends mV (already converted from sysfs uV, or fallback 1000mV)
-            // Just divide by 1000 to get volts for display
-            const voltageRaw = parseInt(data.voltage) || 1000; // Fallback to 1V if missing
-            const voltage = formatNumber(voltageRaw / 1000, 2);
-            
-            // Debug info untuk voltage source
-            console.log(`Voltage source: ${voltageSource}, Charging: ${isCharging}, Voltage: ${voltage}V`);
-            
-            const current = Math.floor((parseInt(data.current_now) || 0) / 1000);
-            // Update global current MA for spawn logic
-            currentMA = current;
-            const temperature = formatNumber((parseInt(data.temp) || 0) / 10, 1);
-            
-            // Power calc: backend voltage (mV) * current (uA) / 1,000,000 = milliwatts, then /1000 = watts
-            const power = formatPower(Math.abs((voltageRaw * (parseInt(data.current_now) || 0)) / 1000000000));
-            
-            if (status !== "Unknown") lastStatus = status;
-            
-            animateValue('capacity-value', capacity);
-            document.getElementById('status-label').textContent = lastStatus;
-            animateValue('voltage-value', voltage);
-            animateValue('current-value', current);
-            animateValue('power-value', power);
-            animateValue('temp-value', temperature);
-            
-            updateLiquid(capacity);
-            
-            const chargingActive = lastStatus.toLowerCase() === 'charging';
-            
-            // Logic: If manual toggle is ON, use that. If OFF, use battery status.
-            if (isBubbleSimulationEnabled) {
-                toggleBubbleSpawning(true);
-            } else {
-                toggleBubbleSpawning(chargingActive);
-            }
-            
-            // Update isCharging for other logic that depends on it
-            isCharging = isBubbleSimulationEnabled || chargingActive;
-            
-            const isDraining = lastStatus.toLowerCase() === 'discharging' || lastStatus.toLowerCase() === 'not charging';
-            toggleDrainLeak(isDraining);
-        } catch (e) {
+    // Battery data update using BatteryManager
+    function updateBatteryData(data) {
+        if (data.error) {
+            console.error('[Main] Battery data error:', data.error);
+            return;
         }
+        
+        const capacity = data.capacity || 0;
+        const status = data.status || lastStatus || "Unknown";
+        const voltageDisplayLabel = data.voltageDisplayLabel || 'Voltage';
+        const voltageSourceInfo = data.voltageSourceInfo || 'Unknown source';
+        
+        // Debug info untuk voltage source
+        console.log(`Voltage source: ${data.source}, Label: ${voltageDisplayLabel}, Info: ${voltageSourceInfo}`);
+        
+        const voltage = formatNumber(data.voltageV || 0, 2);
+        const current = data.currentMA || 0;
+        const temperature = formatNumber(data.temperatureC || 0, 1);
+        const power = formatPower(data.powerW || 0);
+        
+        // Update global current MA for spawn logic
+        currentMA = current;
+        
+        if (status !== "Unknown") lastStatus = status;
+        
+        animateValue('capacity-value', capacity);
+        document.getElementById('status-label').textContent = lastStatus;
+        
+        // Update voltage label dynamically
+        document.getElementById('voltage-label').textContent = voltageDisplayLabel;
+        animateValue('voltage-value', voltage);
+        
+        animateValue('current-value', current);
+        animateValue('power-value', power);
+        animateValue('temp-value', temperature);
+        
+        updateLiquid(capacity);
+        
+        const chargingActive = data.isCharging || false;
+        
+        // Logic: If manual toggle is ON, use that. If OFF, use battery status.
+        if (isBubbleSimulationEnabled) {
+            toggleBubbleSpawning(true);
+        } else {
+            toggleBubbleSpawning(chargingActive);
+        }
+        
+        // Update isCharging for other logic that depends on it
+        isCharging = isBubbleSimulationEnabled || chargingActive;
+        
+        const isDraining = data.isDischarging || false;
+        toggleDrainLeak(isDraining);
     }
     
     // Debug functions
@@ -504,10 +500,16 @@
         applyTheme('dark');
     }
     
-    setTimeout(() => {
-        updateBattery();
-    }, 300);
-    
-    setInterval(updateBattery, 1000);
+    // Initialize BatteryManager and subscribe to updates
+    if (typeof batteryManager !== 'undefined') {
+        batteryManager.subscribe(updateBatteryData);
+        batteryManager.start(1000);
+    } else {
+        // Fallback to old method if BatteryManager not available
+        setTimeout(() => {
+            updateBattery();
+        }, 300);
+        setInterval(updateBattery, 1000);
+    }
     
 })();
