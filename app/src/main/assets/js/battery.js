@@ -52,6 +52,9 @@ class BatteryManager {
                 throw new Error(data.error);
             }
             
+            // Debug log raw data
+            console.log('[Battery] Raw data received:', JSON.stringify(data, null, 2));
+            
             // Parse values
             const batteryData = {
                 capacity: parseInt(data.capacity) || 0,
@@ -65,6 +68,12 @@ class BatteryManager {
                 voltageSourceInfo: data.voltage_source_info || 'Unknown source',
                 timestamp: Date.now()
             };
+            
+            // Debug log parsed voltage specifically
+            console.log('[Battery] Parsed voltage:', batteryData.voltage, '(raw:', data.voltage, ')');
+            if (batteryData.voltage === 0) {
+                console.warn('[Battery] Voltage is 0mV - potential data issue');
+            }
             
             // Calculate derived values
             batteryData.voltageV = batteryData.voltage / 1000;
@@ -85,9 +94,16 @@ class BatteryManager {
             
         } catch (error) {
             console.error('[Battery] Update failed:', error);
+            console.error('[Battery] Raw JSON from Android:', typeof jsonData !== 'undefined' ? jsonData : 'undefined');
+            console.error('[Battery] Android bridge available:', typeof Android !== 'undefined');
+            console.error('[Battery] getBatteryData method exists:', typeof Android !== 'undefined' && typeof Android.getBatteryData === 'function');
+            
             this.stats.errors.push({
                 time: Date.now(),
-                message: error.message
+                message: error.message,
+                rawData: typeof jsonData !== 'undefined' ? jsonData : 'undefined',
+                androidBridge: typeof Android !== 'undefined',
+                methodExists: typeof Android !== 'undefined' && typeof Android.getBatteryData === 'function'
             });
             
             // Notify listeners of error
