@@ -13,7 +13,7 @@ on:
     types: [created]
 
 jobs:
-  # ── /oc <prompt> ── build (langsung edit & commit)
+  # ── /oc <prompt> ── build (apply changes, commit, push)
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -76,16 +76,21 @@ jobs:
             • Jika relevan: satu komentar sebelum /oc sebagai tambahan konteks
             • File yang langsung & tidak langsung terkait permintaan
 
-            <thinking> (maks 180 kata total, terstruktur):
-            1. Ringkas permintaan terbaru + konteks repo & satu komentar sebelumnya (jika relevan)
-            2. Identifikasi file terdampak + potensi side effects lintas file
-            3. Reasoning mendalam: alasan, risiko rusak, alternatif
-            4. Rencana akhir: perubahan paling kecil & aman dengan path file tepat
-            5. Penilaian risiko: low/medium/high + cara mitigasi
-            Jika risiko medium atau tinggi → hentikan dan minta klarifikasi
+            <thinking> (maks 150 kata total, gunakan format ini persis):
+            1. Request + konteks kunci (repo structure, latest comment + satu sebelumnya jika relevan)
+            2. File terdampak & hubungan lintas file (side effects potensial)
+            3. Analisis mendalam (alasan utama, risiko tersembunyi, alternatif terbaik)
+            4. Rencana minimal & aman (langkah-langkah tepat + path file)
+            5. Penilaian risiko akhir (low / medium / high) + mitigasi wajib
+            Jika risiko medium atau tinggi → jelaskan mengapa dan minta klarifikasi
             </thinking>
 
-            Lakukan perubahan HANYA jika risiko rendah dan reasoning solid.
+            Aturan reasoning:
+            - Prioritaskan minimal change & zero regression
+            - Selalu pikirkan dampak runtime, build, dan maintainability
+            - Jika tidak yakin 100% aman → jangan apply, berikan saran alternatif
+            - Gunakan logika ketat, bukan asumsi
+
             Output:
             • Ringkasan keselamatan & alasan (1 kalimat, bilingual jika perlu)
             • Diffs/patches saja (jangan pernah full file kecuali sangat kecil)
@@ -151,13 +156,20 @@ jobs:
             • File & modul relevan + interaksi
             • Maksud permintaan terbaru + satu komentar sebelumnya (jika relevan)
 
-            <thinking> (maks 160 kata, terstruktur):
-            1. Tujuan + snapshot konteks repo & satu komentar sebelumnya (jika relevan)
-            2. Area/file kunci yang terlibat
-            3. Analisis mendalam: pro/kontra, alternatif, dampak jangka panjang
-            4. Rencana langkah demi langkah (4–7 langkah maks)
-            5. Evaluasi risiko & side effect
+            <thinking> (maks 150 kata total, gunakan format ini persis):
+            1. Request + konteks kunci (repo structure, latest comment + satu sebelumnya jika relevan)
+            2. File terdampak & hubungan lintas file (side effects potensial)
+            3. Analisis mendalam (alasan utama, risiko tersembunyi, alternatif terbaik)
+            4. Rencana minimal & aman (langkah-langkah tepat + path file)
+            5. Penilaian risiko akhir (low / medium / high) + mitigasi wajib
+            Jika risiko medium atau tinggi → jelaskan mengapa dan sarankan alternatif
             </thinking>
+
+            Aturan reasoning:
+            - Prioritaskan minimal change & zero regression
+            - Selalu pikirkan dampak runtime, build, dan maintainability
+            - Jika tidak yakin 100% aman → berikan saran alternatif, jangan apply
+            - Gunakan logika ketat, bukan asumsi
 
             Output HANYA:
             • PLAN: langkah bernomor + path file eksak
@@ -226,12 +238,20 @@ jobs:
             • Pola & konvensi umum di repo ini
             • Satu komentar sebelum /oc @review (jika relevan)
 
-            <thinking> (maks 140 kata, terstruktur):
-            1. Ringkas tujuan kode & lokasi di repo + satu komentar sebelumnya (jika relevan)
-            2. Analisis mendalam isu (kebenaran, performa, keamanan, maintainability)
-            3. Masalah struktural/arsitektur
-            4. Tingkat keparahan risiko & dampak potensial
+            <thinking> (maks 150 kata total, gunakan format ini persis):
+            1. Request + konteks kunci (repo structure, latest comment + satu sebelumnya jika relevan)
+            2. File terdampak & hubungan lintas file (side effects potensial)
+            3. Analisis mendalam (alasan utama, risiko tersembunyi, alternatif terbaik)
+            4. Rencana minimal & aman (langkah-langkah tepat + path file)
+            5. Penilaian risiko akhir (low / medium / high) + mitigasi wajib
+            Jika risiko medium atau tinggi → jelaskan mengapa dan sarankan alternatif
             </thinking>
+
+            Aturan reasoning:
+            - Prioritaskan minimal change & zero regression
+            - Selalu pikirkan dampak runtime, build, dan maintainability
+            - Jika tidak yakin 100% aman → berikan saran alternatif
+            - Gunakan logika ketat, bukan asumsi
 
             Output dalam markdown:
             ## Strengths (2–4 poin)
