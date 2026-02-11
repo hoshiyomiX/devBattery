@@ -81,9 +81,15 @@ public class MainActivity extends Activity {
     
 
     
-    private String getTimeStamp() {
-        return new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
-    }
+        private String getTimeStamp() {
+            return new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+        }
+        
+        private void logDebugError(String category, String operation, String message) {
+            String timestamp = getTimeStamp();
+            System.out.println(String.format("[%s][DEBUG][%s] %s: %s", 
+                timestamp, category, operation, message));
+        }
     
     public class BatteryBridge {
         
@@ -144,6 +150,15 @@ public class MainActivity extends Activity {
                 data.put("charger_voltage", chargerVoltage);
                 data.put("is_charging", status == BatteryManager.BATTERY_STATUS_CHARGING);
                 
+                // Dynamic voltage source data
+                if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
+                    data.put("voltage_display_label", "Charging Voltage");
+                    data.put("voltage_source_info", "Source: Charger ADC");
+                } else {
+                    data.put("voltage_display_label", "Battery Voltage");
+                    data.put("voltage_source_info", "Source: Battery Manager");
+                }
+                
                 String historyEntry = String.format(Locale.US, 
                     "[%s] %d%% | %s | %.2fV | %dmA | %.1f°C | Charger: %smV",
                     getTimeStamp(), capacity, statusStr, voltageMv/1000.0, 
@@ -189,12 +204,13 @@ public class MainActivity extends Activity {
                     // Path doesn't exist
                 } catch (SecurityException e) {
                     // SELinux blocking access - print to debug logs
-                    System.out.println("[DEBUG] SELinux blocking access to charger voltage: " + e.getMessage());
+                    logDebugError("ChargerVoltage", "SELinux blocking access", e.getMessage());
                 } catch (Exception e) {
                     // Error reading path - print to debug logs
-                    System.out.println("[DEBUG] Error reading charger voltage: " + e.getMessage());
+                    logDebugError("ChargerVoltage", "Error reading path", e.getMessage());
                 }
             }
+            System.out.println("[DEBUG] Charger voltage fallback - returning 1000mV (1V)");
             return "1000"; // Default 1V for power calculation
         }
         
@@ -208,7 +224,7 @@ public class MainActivity extends Activity {
                         return voltageMv / 1000;
                     }
                 } catch (Exception e) {
-                    System.out.println("[DEBUG] Error getting battery voltage from BatteryManager: " + e.getMessage());
+                    logDebugError("BatteryVoltage", "BatteryManager error", e.getMessage());
                 }
             }
             
@@ -224,7 +240,7 @@ public class MainActivity extends Activity {
                     }
                 }
             } catch (Exception e) {
-                System.out.println("[DEBUG] Error getting battery voltage from intent: " + e.getMessage());
+                logDebugError("BatteryVoltage", "Intent error", e.getMessage());
             }
             
             // Fallback: try to read from remaining sysfs path
@@ -242,12 +258,13 @@ public class MainActivity extends Activity {
                     }
                 }
             } catch (SecurityException e) {
-                System.out.println("[DEBUG] SELinux blocking access to fallback voltage: " + e.getMessage());
+                logDebugError("BatteryVoltage", "SELinux blocking fallback access", e.getMessage());
             } catch (Exception e) {
-                System.out.println("[DEBUG] Error reading fallback voltage: " + e.getMessage());
+                logDebugError("BatteryVoltage", "Error reading fallback", e.getMessage());
             }
             
             // Return 1000mV fallback if no voltage reading available (same as charger fallback)
+            System.out.println("[DEBUG] Battery voltage fallback - returning 1000mV (1V)");
             return 1000;
         }
         
