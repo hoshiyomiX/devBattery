@@ -233,10 +233,14 @@ public class MainActivity extends Activity {
         private int getBatteryVoltageFromManager() {
             System.out.println("[ERROR] Voltage Debug: Starting battery voltage reading, API level: " + android.os.Build.VERSION.SDK_INT);
             
-            // BATTERY_PROPERTY_VOLTAGE_NOW requires API 21+, not 23
+            // Try BatteryManager API first (API 21+)
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) {
                 try {
-                    int voltageUv = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_VOLTAGE_NOW);
+                    // Use reflection to avoid compile issues with BatteryManager constants
+                    Class<?> batteryManagerClass = BatteryManager.class;
+                    java.lang.reflect.Field voltageField = batteryManagerClass.getDeclaredField("BATTERY_PROPERTY_VOLTAGE_NOW");
+                    int voltageProperty = voltageField.getInt(null);
+                    int voltageUv = batteryManager.getIntProperty(voltageProperty);
                     System.out.println("[ERROR] Voltage Debug: BatteryManager voltage (microvolts): " + voltageUv);
                     if (voltageUv > 0) {
                         // BatteryManager returns in microvolts, convert to millivolts
