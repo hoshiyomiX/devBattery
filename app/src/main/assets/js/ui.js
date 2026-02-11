@@ -44,6 +44,9 @@ class UIManager {
             const voltageLabel = document.querySelector('#tile-voltage .tile-label');
             if (voltageLabel) {
                 voltageLabel.textContent = data.voltageDisplayLabel;
+                console.log('[UI] Updated voltage label to:', data.voltageDisplayLabel);
+            } else {
+                console.error('[UI] Voltage label element not found');
             }
         }
     }

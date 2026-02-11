@@ -66,6 +66,14 @@ class BatteryManager {
                 timestamp: Date.now()
             };
             
+            // Debug log for voltage data
+            console.log('[Battery] Voltage data:', {
+                voltage: batteryData.voltage,
+                voltageDisplayLabel: batteryData.voltageDisplayLabel,
+                voltageSourceInfo: batteryData.voltageSourceInfo,
+                status: batteryData.status
+            });
+            
             // Calculate derived values
             batteryData.voltageV = batteryData.voltage / 1000;
             batteryData.currentMA = Math.floor(batteryData.current / 1000);

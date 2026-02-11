@@ -136,9 +136,10 @@ public class MainActivity extends Activity {
                     chargerVoltage = readChargerVoltageDirect();
                     voltageMv = Integer.parseInt(chargerVoltage);
                     data.put("voltage_source", "charger");
-                } else {
+                 } else {
                     voltageMv = getBatteryVoltageFromManager();
                     data.put("voltage_source", "battery");
+                    System.out.println("[DEBUG] Battery voltage reading: " + voltageMv + "mV");
                 }
                 
                 data.put("capacity", String.valueOf(capacity));
@@ -158,6 +159,10 @@ public class MainActivity extends Activity {
                     data.put("voltage_display_label", "Battery Voltage");
                     data.put("voltage_source_info", "Source: Battery Manager");
                 }
+                
+                // Enhanced debug info for voltage reading
+                logDebugError("VoltageDebug", "Final voltage", voltageMv + "mV from " + 
+                    (status == BatteryManager.BATTERY_STATUS_CHARGING ? "charger" : "battery"));
                 
                 String historyEntry = String.format(Locale.US, 
                     "[%s] %d%% | %s | %.2fV | %dmA | %.1f°C | Charger: %smV",
@@ -243,9 +248,9 @@ public class MainActivity extends Activity {
                 logDebugError("BatteryVoltage", "Intent error", e.getMessage());
             }
             
-            // Fallback: try to read from remaining sysfs path
+            // Fallback: try to read from battery sysfs path (different from charger)
             try {
-                File file = new File("/sys/devices/platform/charger/ADC_Charger_Voltage");
+                File file = new File("/sys/class/power_supply/battery/voltage_now");
                 if (file.exists() && file.canRead()) {
                     BufferedReader reader = new BufferedReader(new FileReader(file));
                     String value = reader.readLine();
