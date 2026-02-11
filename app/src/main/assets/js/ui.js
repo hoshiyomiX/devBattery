@@ -38,6 +38,14 @@ class UIManager {
         this.animateValue('currentValue', data.currentMA);
         this.animateValue('powerValue', data.powerW.toFixed(2));
         this.animateValue('tempValue', data.temperatureC.toFixed(1));
+        
+        // Update dynamic voltage label if available
+        if (data.voltageDisplayLabel) {
+            const voltageLabel = document.querySelector('#tile-voltage .tile-label');
+            if (voltageLabel) {
+                voltageLabel.textContent = data.voltageDisplayLabel;
+            }
+        }
     }
     
     animateValue(elementKey, value) {

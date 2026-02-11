@@ -61,6 +61,8 @@ class BatteryManager {
                 temperature: parseInt(data.temp) || 0,
                 chargerVoltage: data.charger_voltage || '0',
                 source: data.source || 'unknown',
+                voltageDisplayLabel: data.voltage_display_label || 'Voltage',
+                voltageSourceInfo: data.voltage_source_info || 'Unknown source',
                 timestamp: Date.now()
             };
             
