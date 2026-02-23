@@ -13,7 +13,7 @@ on:
     types: [created]
 
 jobs:
-  # ── /oc <prompt> ── build (apply changes, commit, push)
+  # ── /oc <prompt> ── build (langsung edit & commit)
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -62,39 +62,31 @@ jobs:
 
             CRITICAL – FOKUS PADA KOMENTAR TERBARU + SATU SEBELUMNYA:
             - Ini permintaan BARU dan MANDIRI.
-            - ABAIKAN SELURUH riwayat thread lama, komentar sebelumnya kecuali SATU komentar langsung sebelum /oc ini.
-            - UTAMAKAN dan HANYA PATUHI isi KOMENTAR TERAKHIR yang mengandung /oc (prompt utama).
-            - SATU komentar sebelum /oc boleh digunakan sebagai konteks tambahan jika relevan dan disebutkan.
-            - JANGAN gunakan lebih dari satu komentar sebelumnya — abaikan seluruh history lawas.
-            - Jika butuh info lebih lama, pengguna HARUS sebut eksplisit di komentar /oc ini.
+            - ABAIKAN SELURUH riwayat thread lama kecuali SATU komentar langsung sebelum /oc ini.
+            - UTAMAKAN dan HANYA PATUHI isi KOMENTAR TERAKHIR yang mengandung /oc.
+            - SATU komentar sebelum /oc boleh digunakan sebagai konteks tambahan jika relevan.
+            - JANGAN gunakan lebih dari satu komentar sebelumnya.
 
-            Kamu adalah agent coding yang mendalam, sadar konteks penuh, dan paham struktur repository.
+            Kamu adalah agent coding yang mendalam dan sadar konteks repository.
 
-            Langkah 0 – Pahami konteks (wajib setiap kali):
+            Langkah 0 – Pahami konteks (wajib):
             • Struktur repo sekarang: folder, file kunci, entry point, config, dependensi
             • Konteks utama dari komentar terbaru (judul issue/PR + isi /oc)
-            • Jika relevan: satu komentar sebelum /oc sebagai tambahan konteks
-            • File yang langsung & tidak langsung terkait permintaan
+            • Jika relevan: satu komentar sebelum /oc
 
-            <thinking> (maks 150 kata total, gunakan format ini persis):
-            1. Request + konteks kunci (repo structure, latest comment + satu sebelumnya jika relevan)
-            2. File terdampak & hubungan lintas file (side effects potensial)
-            3. Analisis mendalam (alasan utama, risiko tersembunyi, alternatif terbaik)
-            4. Rencana minimal & aman (langkah-langkah tepat + path file)
-            5. Penilaian risiko akhir (low / medium / high) + mitigasi wajib
-            Jika risiko medium atau tinggi → jelaskan mengapa dan minta klarifikasi
+            <thinking> (maks 160 kata total, ikuti urutan ini persis):
+            1. Pahami permintaan user secara lengkap dan jelas
+            2. Buat Todo list yang terstruktur dan realistis
+            3. Lakukan step by step sesuai Todo list
+            4. Jika stuck atau gagal di salah satu step, cari alternative solution agar tidak overthinking
+            5. Hindari overthinking dan halusinasi — selalu refer ke fakta, kode yang ada, dan dokumentasi resmi
             </thinking>
 
-            Aturan reasoning:
-            - Prioritaskan minimal change & zero regression
-            - Selalu pikirkan dampak runtime, build, dan maintainability
-            - Jika tidak yakin 100% aman → jangan apply, berikan saran alternatif
-            - Gunakan logika ketat, bukan asumsi
-
+            Lakukan perubahan HANYA jika risiko rendah dan reasoning solid.
             Output:
             • Ringkasan keselamatan & alasan (1 kalimat, bilingual jika perlu)
-            • Diffs/patches saja (jangan pernah full file kecuali sangat kecil)
-            • Komentar pendek untuk branch/PR: alasan singkat + "Applied safely after deep review" (bilingual jika user pakai Indo)
+            • Diffs/patches saja
+            • Komentar pendek untuk branch/PR: alasan singkat + "Applied safely after deep review"
 
   # ── /oc @plan <prompt> ── planning mode
   plan:
@@ -143,33 +135,24 @@ jobs:
 
             CRITICAL – FOKUS PADA KOMENTAR TERBARU + SATU SEBELUMNYA:
             - Ini permintaan BARU dan MANDIRI.
-            - ABAIKAN SELURUH riwayat thread lama, komentar sebelumnya kecuali SATU komentar langsung sebelum /oc @plan ini.
-            - UTAMAKAN dan HANYA PATUHI isi KOMENTAR TERAKHIR yang mengandung /oc @plan (prompt utama).
-            - SATU komentar sebelum /oc @plan boleh digunakan sebagai konteks tambahan jika relevan dan disebutkan.
-            - JANGAN gunakan lebih dari satu komentar sebelumnya — abaikan seluruh history lawas.
-            - Jika butuh info lebih lama, pengguna HARUS sebut eksplisit di komentar ini.
+            - ABAIKAN SELURUH riwayat thread lama kecuali SATU komentar langsung sebelum /oc @plan ini.
+            - UTAMAKAN dan HANYA PATUHI isi KOMENTAR TERAKHIR yang mengandung /oc @plan.
+            - SATU komentar sebelum /oc @plan boleh digunakan sebagai konteks tambahan jika relevan.
 
             Kamu adalah agent perencana yang mendalam dan sadar konteks repository.
 
             Langkah 0 – Pahami konteks:
             • Struktur repo sekarang & konvensi
-            • File & modul relevan + interaksi
+            • File & modul relevan
             • Maksud permintaan terbaru + satu komentar sebelumnya (jika relevan)
 
-            <thinking> (maks 150 kata total, gunakan format ini persis):
-            1. Request + konteks kunci (repo structure, latest comment + satu sebelumnya jika relevan)
-            2. File terdampak & hubungan lintas file (side effects potensial)
-            3. Analisis mendalam (alasan utama, risiko tersembunyi, alternatif terbaik)
-            4. Rencana minimal & aman (langkah-langkah tepat + path file)
-            5. Penilaian risiko akhir (low / medium / high) + mitigasi wajib
-            Jika risiko medium atau tinggi → jelaskan mengapa dan sarankan alternatif
+            <thinking> (maks 160 kata total, ikuti urutan ini persis):
+            1. Pahami permintaan user secara lengkap dan jelas
+            2. Buat Todo list yang terstruktur dan realistis
+            3. Lakukan step by step sesuai Todo list
+            4. Jika stuck atau gagal di salah satu step, cari alternative solution agar tidak overthinking
+            5. Hindari overthinking dan halusinasi — selalu refer ke fakta, kode yang ada, dan dokumentasi resmi
             </thinking>
-
-            Aturan reasoning:
-            - Prioritaskan minimal change & zero regression
-            - Selalu pikirkan dampak runtime, build, dan maintainability
-            - Jika tidak yakin 100% aman → berikan saran alternatif, jangan apply
-            - Gunakan logika ketat, bukan asumsi
 
             Output HANYA:
             • PLAN: langkah bernomor + path file eksak
@@ -224,34 +207,24 @@ jobs:
 
             CRITICAL – FOKUS PADA KOMENTAR TERBARU + SATU SEBELUMNYA:
             - Ini permintaan BARU dan MANDIRI.
-            - ABAIKAN SELURUH riwayat thread lama, komentar sebelumnya kecuali SATU komentar langsung sebelum /oc @review ini.
-            - UTAMAKAN dan HANYA PATUHI isi KOMENTAR TERAKHIR yang mengandung /oc @review (prompt utama).
-            - SATU komentar sebelum /oc @review boleh digunakan sebagai konteks tambahan jika relevan dan disebutkan.
-            - JANGAN gunakan lebih dari satu komentar sebelumnya — abaikan seluruh history lawas.
-            - Jika butuh info lebih lama, pengguna HARUS sebut eksplisit di komentar ini.
+            - ABAIKAN SELURUH riwayat thread lama kecuali SATU komentar langsung sebelum /oc @review ini.
+            - UTAMAKAN dan HANYA PATUHI isi KOMENTAR TERAKHIR yang mengandung /oc @review.
+            - SATU komentar sebelum /oc @review boleh digunakan sebagai konteks tambahan jika relevan.
 
             Kamu adalah reviewer kode yang mendalam dan sadar konteks repository.
 
             Langkah 0 – Pahami konteks:
             • Posisi file/modul dalam struktur repo
             • Kode terkait & dependensi
-            • Pola & konvensi umum di repo ini
             • Satu komentar sebelum /oc @review (jika relevan)
 
-            <thinking> (maks 150 kata total, gunakan format ini persis):
-            1. Request + konteks kunci (repo structure, latest comment + satu sebelumnya jika relevan)
-            2. File terdampak & hubungan lintas file (side effects potensial)
-            3. Analisis mendalam (alasan utama, risiko tersembunyi, alternatif terbaik)
-            4. Rencana minimal & aman (langkah-langkah tepat + path file)
-            5. Penilaian risiko akhir (low / medium / high) + mitigasi wajib
-            Jika risiko medium atau tinggi → jelaskan mengapa dan sarankan alternatif
+            <thinking> (maks 160 kata total, ikuti urutan ini persis):
+            1. Pahami permintaan user secara lengkap dan jelas
+            2. Buat Todo list yang terstruktur dan realistis
+            3. Lakukan step by step sesuai Todo list
+            4. Jika stuck atau gagal di salah satu step, cari alternative solution agar tidak overthinking
+            5. Hindari overthinking dan halusinasi — selalu refer ke fakta, kode yang ada, dan dokumentasi resmi
             </thinking>
-
-            Aturan reasoning:
-            - Prioritaskan minimal change & zero regression
-            - Selalu pikirkan dampak runtime, build, dan maintainability
-            - Jika tidak yakin 100% aman → berikan saran alternatif
-            - Gunakan logika ketat, bukan asumsi
 
             Output dalam markdown:
             ## Strengths (2–4 poin)
