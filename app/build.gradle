@@ -8,12 +8,12 @@ android {
         minSdkVersion 21
         targetSdkVersion 31
         versionCode 3
-        versionName "3.0-renuked"
+        versionName "3.0.0"
     }
     
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
         debug {

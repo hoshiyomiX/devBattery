@@ -40,7 +40,7 @@ jobs:
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
 
       - name: Run OpenCode Build Agent
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@v0.27.2
         env: {}
         with:
           model: opencode/glm-5-free
@@ -113,7 +113,7 @@ jobs:
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
 
       - name: Run OpenCode Plan Agent
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@v0.27.2
         env: {}
         with:
           model: opencode/glm-5-free
@@ -185,7 +185,7 @@ jobs:
           git config --global user.email "opencode-agent[bot]@users.noreply.github.com"
 
       - name: Run OpenCode Review Agent
-        uses: anomalyco/opencode/github@latest
+        uses: anomalyco/opencode/github@v0.27.2
         env: {}
         with:
           model: opencode/glm-5-free

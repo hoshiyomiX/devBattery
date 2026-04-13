@@ -504,12 +504,6 @@
     if (typeof batteryManager !== 'undefined') {
         batteryManager.subscribe(updateBatteryData);
         batteryManager.start(1000);
-    } else {
-        // Fallback to old method if BatteryManager not available
-        setTimeout(() => {
-            updateBattery();
-        }, 300);
-        setInterval(updateBattery, 1000);
     }
     
 })();

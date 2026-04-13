@@ -5,13 +5,12 @@
 # directive in build.gradle.
 #
 # For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+#   http://developer.android.com/getproguard/index.html
 
-# Add any project specific keep options here:
+# Preserve JavaScript interface methods from ProGuard renaming
+-keepclassmembers class com.deviant.batterymonitor.MainActivity$BatteryBridge {
+    @android.webkit.JavascriptInterface *;
+}
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep BatteryBridge class itself
+-keep class com.deviant.batterymonitor.MainActivity$BatteryBridge { *; }

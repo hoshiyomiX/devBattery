@@ -637,16 +637,5 @@
 
     <script src="js/battery.js"></script>
     <script src="js/main.js"></script>
-    <script>
-        try {
-            if (typeof Android !== 'undefined' && Android.getSystemTheme) {
-                applyTheme(Android.getSystemTheme());
-            } else {
-                applyTheme('dark');
-            }
-        } catch (e) {
-            applyTheme('dark');
-        }
-    </script>
 </body>
 </html>

@@ -10,15 +10,13 @@ class MyWebViewClient extends WebViewClient {
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
         String url = request.getUrl().toString();
-        String hostname;
 
-        // YOUR HOSTNAME
-        hostname = "example.com";
-
-        Uri uri = Uri.parse(url);
-        if (url.startsWith("file:") || uri.getHost() != null && uri.getHost().endsWith(hostname)) {
+        // Only allow file:// URLs (local assets)
+        if (url.startsWith("file:")) {
             return false;
         }
+
+        // Block all other navigations by opening in external browser
         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         view.getContext().startActivity(intent);
         return true;

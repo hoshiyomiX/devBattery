@@ -91,7 +91,6 @@ jobs:
       
       - name: Build Debug APK
         if: ${{ github.event.inputs.build_type == 'debug' || github.event.inputs.build_type == '' }}
-        continue-on-error: true
         run: |
           echo "===== STARTING DEBUG BUILD =====" | tee -a build_log.txt
           ./gradlew assembleDebug --no-build-cache --rerun-tasks --stacktrace --info 2>&1 | tee -a build_log.txt
@@ -100,7 +99,6 @@ jobs:
       
       - name: Build Release APK
         if: ${{ github.event.inputs.build_type == 'release' }}
-        continue-on-error: true
         run: |
           echo "===== STARTING RELEASE BUILD =====" | tee -a build_log.txt
           ./gradlew assembleRelease --no-build-cache --rerun-tasks --stacktrace --info 2>&1 | tee -a build_log.txt
@@ -186,7 +184,7 @@ jobs:
           git commit -m "Build log for run #${{ github.run_number }} from ${{ github.event.inputs.branch || github.ref_name }} [skip ci]" || echo "No changes to commit"
           
           # Push
-          git push -f origin build-logs || echo "Failed to push, but continuing..."
+          git push origin build-logs || echo "Failed to push, but continuing..."
           
           echo "Log pushed to build-logs branch" | tee -a build_log.txt
       
