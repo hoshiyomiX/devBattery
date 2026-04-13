@@ -234,7 +234,10 @@ public class MainActivity extends Activity {
             // Try BatteryManager API first (API 21+)
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) {
                 try {
-                    int voltageUv = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_VOLTAGE_NOW);
+                    // Use reflection: BATTERY_PROPERTY_VOLTAGE_NOW is a hidden internal constant
+                    java.lang.reflect.Field voltageField = BatteryManager.class.getDeclaredField("BATTERY_PROPERTY_VOLTAGE_NOW");
+                    int voltageProperty = voltageField.getInt(null);
+                    int voltageUv = batteryManager.getIntProperty(voltageProperty);
                     System.out.println("[DEBUG] Voltage Debug: BatteryManager voltage (microvolts): " + voltageUv);
                     if (voltageUv > 0) {
                         // BatteryManager returns in microvolts, convert to millivolts
@@ -508,7 +511,7 @@ java.lang.Process logcatProcess = Runtime.getRuntime().exec(logcatCmd);
     protected void onDestroy() {
         if (webView != null) {
             webView.stopLoading();
-            webView.setJavaScriptEnabled(false);
+            webView.getSettings().setJavaScriptEnabled(false);
             webView.destroy();
             webView = null;
         }
