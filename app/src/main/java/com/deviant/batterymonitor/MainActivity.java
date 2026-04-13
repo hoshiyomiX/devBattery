@@ -481,12 +481,12 @@ public class MainActivity extends Activity {
                 // Try to read logcat for SELinux denials
                 String[] logcatCmd = {"logcat", "-d", "-s", "audit:*", "*:E"};
                 java.lang.Process logcatProcess = Runtime.getRuntime().exec(logcatCmd);
+                String line; // declared here to be accessible in both logcat and dmesg blocks
                 
                 // T3: try-with-resources for BufferedReader
                 try (BufferedReader logcatReader = new BufferedReader(
                     new InputStreamReader(logcatProcess.getInputStream()))) {
                 
-                    String line;
                     int logCount = 0;
                     while ((line = logcatReader.readLine()) != null && logCount < 5) {
                         if (line.toLowerCase().contains("selinux") || 
