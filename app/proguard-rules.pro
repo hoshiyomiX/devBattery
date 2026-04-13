@@ -11,6 +11,3 @@
 -keepclassmembers class com.deviant.batterymonitor.MainActivity$BatteryBridge {
     @android.webkit.JavascriptInterface *;
 }
-
-# Keep BatteryBridge class itself
--keep class com.deviant.batterymonitor.MainActivity$BatteryBridge { *; }

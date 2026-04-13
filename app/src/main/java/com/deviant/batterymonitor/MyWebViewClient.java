@@ -16,9 +16,13 @@ class MyWebViewClient extends WebViewClient {
             return false;
         }
 
-        // Block all other navigations by opening in external browser
+        // T6: Check if any app can handle the intent before calling startActivity
         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-        view.getContext().startActivity(intent);
+        if (intent.resolveActivity(view.getContext().getPackageManager()) != null) {
+            view.getContext().startActivity(intent);
+        }
+
+        // Block all other navigations inside the WebView regardless
         return true;
     }
 }

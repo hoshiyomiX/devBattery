@@ -463,7 +463,13 @@
         textarea.select();
         
         try {
-            document.execCommand('copy');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(debugData).catch(function() {
+                    document.execCommand('copy');
+                });
+            } else {
+                document.execCommand('copy');
+            }
         } catch (e) {
         }
         

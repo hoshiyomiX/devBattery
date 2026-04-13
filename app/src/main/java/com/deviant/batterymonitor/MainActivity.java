@@ -15,6 +15,7 @@ import android.content.res.Configuration;
 import android.os.Process;
 import org.json.JSONObject;
 import java.io.*;
+import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -49,7 +50,10 @@ public class MainActivity extends Activity {
         settings.setAllowFileAccessFromFileURLs(false);
         settings.setAllowUniversalAccessFromFileURLs(false);
         
-        webView.addJavascriptInterface(new BatteryBridge(), "Android");
+        // T1: Attach WebViewClient for URL filtering
+        webView.setWebViewClient(new MyWebViewClient());
+        // T2: Pass Activity reference to static BatteryBridge
+        webView.addJavascriptInterface(new BatteryBridge(this), "Android");
         webView.loadUrl("file:///android_asset/index.html");
     }
     
@@ -82,12 +86,24 @@ public class MainActivity extends Activity {
             timestamp, category, operation, message));
     }
     
-    public class BatteryBridge {
+    // T2: Static inner class to prevent Activity memory leak via JavascriptInterface
+    public static class BatteryBridge {
+        private final WeakReference<MainActivity> activityRef;
+
+        BatteryBridge(MainActivity activity) {
+            activityRef = new WeakReference<>(activity);
+        }
+
+        private MainActivity getActivity() {
+            return activityRef.get();
+        }
         
         @JavascriptInterface
         public String getSystemTheme() {
             try {
-                int uiMode = getResources().getConfiguration().uiMode;
+                MainActivity activity = getActivity();
+                if (activity == null) return "dark";
+                int uiMode = activity.getResources().getConfiguration().uiMode;
                 boolean isDark = (uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
                 return isDark ? "dark" : "light";
             } catch (Exception e) {
@@ -103,28 +119,33 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String getBatteryData() {
             try {
+                MainActivity activity = getActivity();
+                if (activity == null) {
+                    return "{\"error\":\"Activity unavailable\"}";
+                }
+
                 JSONObject data = new JSONObject();
-                updateCount++;
+                activity.updateCount++;
                 
                 IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-                Intent batteryStatus = registerReceiver(null, ifilter);
+                Intent batteryStatus = activity.registerReceiver(null, ifilter);
                 
                 if (batteryStatus == null) {
                     data.put("error", "Battery Intent unavailable");
                     return data.toString();
                 }
                 
-                int capacity = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+                int capacity = activity.batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
                 int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
                 String statusStr = getStatusString(status);
-                int currentUa = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+                int currentUa = activity.batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
                 String chargerVoltage = "0";
                 int voltageMv;
                 int tempDeci = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
                 
                 // Charging detection
                 if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
-                    chargerVoltage = readChargerVoltageDirect();
+                    chargerVoltage = readChargerVoltageDirect(activity);
                     try {
                         voltageMv = Integer.parseInt(chargerVoltage.trim());
                     } catch (NumberFormatException nfe) {
@@ -133,7 +154,7 @@ public class MainActivity extends Activity {
                     }
                     data.put("voltage_source", "charger");
                 } else {
-                    voltageMv = getBatteryVoltageFromManager();
+                    voltageMv = getBatteryVoltageFromManager(activity);
                     data.put("voltage_source", "battery");
                 }
                 
@@ -165,40 +186,40 @@ public class MainActivity extends Activity {
                 }
                 
                 String historyEntry = String.format(Locale.US, 
-                    "[%s] %d%% | %s | %.2fV | %dmA | %.1f°C | Charger: %smV",
-                    getTimeStamp(), capacity, statusStr, voltageMv/1000.0, 
+                    "[%s] %d%% | %s | %.2fV | %dmA | %.1f C | Charger: %smV",
+                    activity.getTimeStamp(), capacity, statusStr, voltageMv/1000.0, 
                     currentUa/1000, tempDeci/10.0, chargerVoltage);
                 
-                batteryHistory.add(historyEntry);
-                if (batteryHistory.size() > MAX_HISTORY) {
-                    batteryHistory.remove(0);
+                activity.batteryHistory.add(historyEntry);
+                if (activity.batteryHistory.size() > MAX_HISTORY) {
+                    activity.batteryHistory.remove(0);
                 }
                 
                 return data.toString();
             } catch (Exception e) {
                 e.printStackTrace();
                 try {
-                    return new JSONObject().put("error", e.getMessage()).toString();
+                    // T7: Null-guard e.getMessage() to prevent silent error swallowing
+                    String msg = e.getMessage();
+                    if (msg == null || msg.isEmpty()) msg = "Unknown error";
+                    return new JSONObject().put("error", msg).toString();
                 } catch (Exception jsonErr) {
                     return "{\"error\":\"unknown\"}";
                 }
             }
         }
         
-        private String readChargerVoltageDirect() {
-            String[] possiblePaths = {
-                "/sys/devices/platform/charger/ADC_Charger_Voltage"
-            };
-            
-            for (String path : possiblePaths) {
-                try {
-                    File file = new File(path);
-                    System.out.println("[DEBUG] Voltage Debug: Checking path " + path + " exists=" + file.exists() + " readable=" + file.canRead());
-                    
-                    if (file.exists() && file.canRead()) {
-                        BufferedReader reader = new BufferedReader(new FileReader(file));
+        // T9: Simplified from single-element array iteration
+        private static String readChargerVoltageDirect(MainActivity activity) {
+            String path = "/sys/devices/platform/charger/ADC_Charger_Voltage";
+            try {
+                File file = new File(path);
+                System.out.println("[DEBUG] Voltage Debug: Checking path " + path + " exists=" + file.exists() + " readable=" + file.canRead());
+                
+                if (file.exists() && file.canRead()) {
+                    // T3: try-with-resources for BufferedReader
+                    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                         String value = reader.readLine();
-                        reader.close();
                         
                         System.out.println("[DEBUG] Voltage Debug: Raw charger voltage value: '" + value + "'");
                         
@@ -214,21 +235,21 @@ public class MainActivity extends Activity {
                             return value;
                         }
                     }
-                } catch (FileNotFoundException e) {
-                    System.out.println("[DEBUG] Voltage Debug: File not found for " + path + " - " + e.getMessage());
-                } catch (SecurityException e) {
-                    System.out.println("[DEBUG] Voltage Debug: SELinux blocking access to " + path + " - " + e.getMessage());
-                    logDebugError("ChargerVoltage", "SELinux blocking access", e.getMessage());
-                } catch (Exception e) {
-                    System.out.println("[DEBUG] Voltage Debug: Error reading " + path + " - " + e.getMessage());
-                    logDebugError("ChargerVoltage", "Error reading path", e.getMessage());
                 }
+            } catch (FileNotFoundException e) {
+                System.out.println("[DEBUG] Voltage Debug: File not found for " + path + " - " + e.getMessage());
+            } catch (SecurityException e) {
+                System.out.println("[DEBUG] Voltage Debug: SELinux blocking access to " + path + " - " + e.getMessage());
+                logDebugError("ChargerVoltage", "SELinux blocking access", e.getMessage());
+            } catch (Exception e) {
+                System.out.println("[DEBUG] Voltage Debug: Error reading " + path + " - " + e.getMessage());
+                logDebugError("ChargerVoltage", "Error reading path", e.getMessage());
             }
             System.out.println("[DEBUG] Voltage Debug: All charger voltage paths failed, using fallback 1000mV");
             return "1000"; // Default 1V for power calculation
         }
         
-        private int getBatteryVoltageFromManager() {
+        private static int getBatteryVoltageFromManager(MainActivity activity) {
             System.out.println("[DEBUG] Voltage Debug: Starting battery voltage reading, API level: " + android.os.Build.VERSION.SDK_INT);
             
             // Try BatteryManager API first (API 21+)
@@ -237,7 +258,7 @@ public class MainActivity extends Activity {
                     // Use reflection: BATTERY_PROPERTY_VOLTAGE_NOW is a hidden internal constant
                     java.lang.reflect.Field voltageField = BatteryManager.class.getDeclaredField("BATTERY_PROPERTY_VOLTAGE_NOW");
                     int voltageProperty = voltageField.getInt(null);
-                    int voltageUv = batteryManager.getIntProperty(voltageProperty);
+                    int voltageUv = activity.batteryManager.getIntProperty(voltageProperty);
                     System.out.println("[DEBUG] Voltage Debug: BatteryManager voltage (microvolts): " + voltageUv);
                     if (voltageUv > 0) {
                         // BatteryManager returns in microvolts, convert to millivolts
@@ -257,7 +278,7 @@ public class MainActivity extends Activity {
             // For API < 23 or fallback, use battery intent
             try {
                 IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-                Intent batteryStatus = MainActivity.this.registerReceiver(null, filter);
+                Intent batteryStatus = activity.registerReceiver(null, filter);
                 if (batteryStatus != null) {
                     int voltageMv = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
                     System.out.println("[DEBUG] Voltage Debug: Battery intent voltage: " + voltageMv + "mV");
@@ -282,18 +303,19 @@ public class MainActivity extends Activity {
                 System.out.println("[DEBUG] Voltage Debug: Battery fallback checking path " + fallbackPath + " exists=" + file.exists() + " readable=" + file.canRead());
                 
                 if (file.exists() && file.canRead()) {
-                    BufferedReader reader = new BufferedReader(new FileReader(file));
-                    String value = reader.readLine();
-                    reader.close();
-                    
-                    System.out.println("[DEBUG] Voltage Debug: Battery fallback raw value: '" + value + "'");
-                    
-                    if (value != null && !value.isEmpty()) {
-                        value = value.trim();
-                        long microvolts = Long.parseLong(value);
-                        int result = (int)(microvolts / 1000);
-                        System.out.println("[DEBUG] Voltage Debug: Battery fallback converted: " + result + "mV");
-                        return result;
+                    // T3: try-with-resources for BufferedReader
+                    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                        String value = reader.readLine();
+                        
+                        System.out.println("[DEBUG] Voltage Debug: Battery fallback raw value: '" + value + "'");
+                        
+                        if (value != null && !value.isEmpty()) {
+                            value = value.trim();
+                            long microvolts = Long.parseLong(value);
+                            int result = (int)(microvolts / 1000);
+                            System.out.println("[DEBUG] Voltage Debug: Battery fallback converted: " + result + "mV");
+                            return result;
+                        }
                     }
                 }
             } catch (SecurityException e) {
@@ -309,7 +331,7 @@ public class MainActivity extends Activity {
             return 1000;
         }
         
-        private String getStatusString(int status) {
+        private static String getStatusString(int status) {
             switch (status) {
                 case BatteryManager.BATTERY_STATUS_CHARGING:
                     return "Charging";
@@ -326,6 +348,7 @@ public class MainActivity extends Activity {
         
         @JavascriptInterface
         public String getDebugInfo() {
+            MainActivity activity = getActivity();
             StringBuilder info = new StringBuilder();
             
             try {
@@ -334,19 +357,23 @@ public class MainActivity extends Activity {
                 // Voltage Source Data
                 info.append("VOLTAGE SOURCE DATA:\n");
                 try {
-                    IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-                    Intent batteryStatus = MainActivity.this.registerReceiver(null, ifilter);
-                    if (batteryStatus != null) {
-                        int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-                        String voltageSource = (status == BatteryManager.BATTERY_STATUS_CHARGING) ? "charger" : "battery";
-                        String chargerVoltage = readChargerVoltageDirect();
-                        int batteryVoltage = getBatteryVoltageFromManager();
-                        
-                        info.append("  Source: ").append(voltageSource).append("\n");
-                        info.append("  Charger Voltage: ").append(chargerVoltage).append("mV\n");
-                        info.append("  Battery Voltage: ").append(batteryVoltage).append("mV\n");
+                    if (activity != null) {
+                        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                        Intent batteryStatus = activity.registerReceiver(null, ifilter);
+                        if (batteryStatus != null) {
+                            int status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                            String voltageSource = (status == BatteryManager.BATTERY_STATUS_CHARGING) ? "charger" : "battery";
+                            String chargerVoltage = readChargerVoltageDirect(activity);
+                            int batteryVoltage = getBatteryVoltageFromManager(activity);
+                            
+                            info.append("  Source: ").append(voltageSource).append("\n");
+                            info.append("  Charger Voltage: ").append(chargerVoltage).append("mV\n");
+                            info.append("  Battery Voltage: ").append(batteryVoltage).append("mV\n");
+                        } else {
+                            info.append("  Battery status unavailable\n");
+                        }
                     } else {
-                        info.append("  Battery status unavailable\n");
+                        info.append("  Activity unavailable\n");
                     }
                 } catch (Exception e) {
                     info.append("  Error: ").append(e.getMessage()).append("\n");
@@ -354,7 +381,7 @@ public class MainActivity extends Activity {
                 info.append("\n");
                 
                 // APK Path
-                String apkPath = getPackageInfo();
+                String apkPath = getPackageInfo(activity);
                 info.append("APK PATH:\n");
                 info.append("  ").append(apkPath).append("\n\n");
                 
@@ -380,26 +407,30 @@ public class MainActivity extends Activity {
             return info.toString();
         }
         
-        private String getPackageInfo() {
+        private static String getPackageInfo(MainActivity activity) {
             try {
-                return getApplicationInfo().sourceDir;
+                if (activity != null) {
+                    return activity.getApplicationInfo().sourceDir;
+                }
+                return "unknown: Activity unavailable";
             } catch (Exception e) {
                 return "unknown: " + e.getMessage();
             }
         }
         
-        private String getSelinuxDomain() {
+        private static String getSelinuxDomain() {
             try {
                 String domain = "unknown";
                 
                 // Try to read from /proc/self/attr/current
                 File attrFile = new File("/proc/self/attr/current");
                 if (attrFile.exists() && attrFile.canRead()) {
-                    BufferedReader reader = new BufferedReader(new FileReader(attrFile));
-                    String line = reader.readLine();
-                    reader.close();
-                    if (line != null && !line.isEmpty()) {
-                        domain = line.trim();
+                    // T3: try-with-resources for BufferedReader
+                    try (BufferedReader reader = new BufferedReader(new FileReader(attrFile))) {
+                        String line = reader.readLine();
+                        if (line != null && !line.isEmpty()) {
+                            domain = line.trim();
+                        }
                     }
                 }
                 
@@ -409,7 +440,7 @@ public class MainActivity extends Activity {
             }
         }
         
-        private String getApkSelinuxContext(String apkPath) {
+        private static String getApkSelinuxContext(String apkPath) {
             try {
                 if (apkPath.equals("unknown") || apkPath.startsWith("error")) {
                     return "cannot determine - APK path unknown";
@@ -443,31 +474,32 @@ public class MainActivity extends Activity {
             }
         }
         
-        private String getSystemDebugLogs() {
+        private static String getSystemDebugLogs() {
             StringBuilder logs = new StringBuilder();
             
             try {
                 // Try to read logcat for SELinux denials
                 String[] logcatCmd = {"logcat", "-d", "-s", "audit:*", "*:E"};
-java.lang.Process logcatProcess = Runtime.getRuntime().exec(logcatCmd);
+                java.lang.Process logcatProcess = Runtime.getRuntime().exec(logcatCmd);
                 
-                BufferedReader logcatReader = new BufferedReader(
-                    new InputStreamReader(logcatProcess.getInputStream()));
+                // T3: try-with-resources for BufferedReader
+                try (BufferedReader logcatReader = new BufferedReader(
+                    new InputStreamReader(logcatProcess.getInputStream()))) {
                 
-                String line;
-                int logCount = 0;
-                while ((line = logcatReader.readLine()) != null && logCount < 5) {
-                    if (line.toLowerCase().contains("selinux") || 
-                        line.toLowerCase().contains("avc: denied") ||
-                        line.toLowerCase().contains("perm=deny")) {
-                        logs.append("  ").append(line.trim()).append("\n");
-                        logCount++;
+                    String line;
+                    int logCount = 0;
+                    while ((line = logcatReader.readLine()) != null && logCount < 5) {
+                        if (line.toLowerCase().contains("selinux") || 
+                            line.toLowerCase().contains("avc: denied") ||
+                            line.toLowerCase().contains("perm=deny")) {
+                            logs.append("  ").append(line.trim()).append("\n");
+                            logCount++;
+                        }
                     }
                 }
-                logcatReader.close();
                 logcatProcess.destroy();
                 
-                if (logCount == 0) {
+                if (logs.toString().trim().isEmpty()) {
                     logs.append("  No recent SELinux denials found\n");
                 }
                 
@@ -476,22 +508,25 @@ java.lang.Process logcatProcess = Runtime.getRuntime().exec(logcatCmd);
                     String[] dmesgCmd = {"dmesg"};
                     java.lang.Process dmesgProcess = Runtime.getRuntime().exec(dmesgCmd);
                     
-                    BufferedReader dmesgReader = new BufferedReader(
-                        new InputStreamReader(dmesgProcess.getInputStream()));
+                    // T3: try-with-resources for BufferedReader
+                    try (BufferedReader dmesgReader = new BufferedReader(
+                        new InputStreamReader(dmesgProcess.getInputStream()))) {
                     
-                    logs.append("\n");
-                    int dmesgCount = 0;
-                    while ((line = dmesgReader.readLine()) != null && dmesgCount < 3) {
-                        if (line.toLowerCase().contains("selinux") || 
-                            line.toLowerCase().contains("audit")) {
-                            logs.append("  KERNEL: ").append(line.trim()).append("\n");
-                            dmesgCount++;
+                        logs.append("\n");
+                        int dmesgCount = 0;
+                        while ((line = dmesgReader.readLine()) != null && dmesgCount < 3) {
+                            if (line.toLowerCase().contains("selinux") || 
+                                line.toLowerCase().contains("audit")) {
+                                logs.append("  KERNEL: ").append(line.trim()).append("\n");
+                                dmesgCount++;
+                            }
                         }
                     }
-                    dmesgReader.close();
                     dmesgProcess.destroy();
                     
-                    if (dmesgCount == 0) {
+                    // Check if any dmesg entries were appended (look for KERNEL marker)
+                    String finalLogs = logs.toString();
+                    if (!finalLogs.contains("KERNEL:")) {
                         logs.append("  No relevant kernel messages found\n");
                     }
                     
@@ -504,6 +539,13 @@ java.lang.Process logcatProcess = Runtime.getRuntime().exec(logcatCmd);
             }
             
             return logs.toString();
+        }
+
+        private static void logDebugError(String category, String operation, String message) {
+            // Static version of logDebugError (no access to instance method)
+            String timestamp = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(new Date());
+            System.out.println(String.format("[%s][DEBUG][%s] %s: %s", 
+                timestamp, category, operation, message));
         }
     }
     
