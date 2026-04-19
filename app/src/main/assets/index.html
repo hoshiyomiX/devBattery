@@ -310,10 +310,6 @@
             position: relative;
             overflow: hidden;
             cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
             transition: transform var(--md-motion-duration-long) var(--md-motion-emphasized),
                         box-shadow var(--md-motion-duration-long) var(--md-motion-emphasized);
             animation: scaleIn 0.5s var(--md-motion-emphasized-decel);
@@ -361,7 +357,6 @@
             opacity: 0.8;
             position: relative;
             z-index: 10;
-            text-align: center;
         }
 
         .tile-value-wrapper {
@@ -403,9 +398,6 @@
             box-shadow: 0 0 0 1px var(--md-sys-color-outline-variant),
                         0 1px 3px 1px rgba(0, 0, 0, 0.15),
                         0 4px 8px 3px rgba(0, 0, 0, 0.10);
-            /* Override centering — battery tile has its own layout */
-            justify-content: flex-start;
-            align-items: flex-start;
         }
 
         .tile-large .tile-label {
@@ -415,7 +407,6 @@
             font-weight: 600;
             letter-spacing: 0.5px;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-            text-align: left;
         }
 
         /* E2: Display medium for large tile value */
