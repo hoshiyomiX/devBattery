@@ -428,23 +428,6 @@
         previousValues[elementId] = newValue;
     }
     
-    // E9: Circular progress ring update
-    function updateProgressRing(percentage) {
-        const bar = document.getElementById('progress-ring-bar');
-        const ring = document.getElementById('progress-ring');
-        if (!bar || !ring) return;
-
-        const circumference = 131.95;
-        const offset = circumference * (1 - percentage / 100);
-        bar.setAttribute('stroke-dashoffset', Math.max(0, offset));
-
-        if (percentage > 0) {
-            ring.classList.add('visible');
-        } else {
-            ring.classList.remove('visible');
-        }
-    }
-
     // Battery data update using BatteryManager
     function updateBatteryData(data) {
         if (data.error) {
@@ -482,9 +465,6 @@
         
         // E1: Dynamic color from battery state
         applyBatteryColor(capacity);
-        
-        // E9: Update circular progress ring
-        updateProgressRing(capacity);
         
         // E11: Update ARIA on battery meter
         const tileCapacity = document.getElementById('tile-capacity');
