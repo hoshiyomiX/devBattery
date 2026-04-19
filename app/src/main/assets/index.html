@@ -362,10 +362,14 @@
         .tile-value-wrapper {
             display: flex;
             align-items: baseline;
-            justify-content: center;
             gap: 4px;
             position: relative;
             z-index: 10;
+        }
+
+        /* Center values only in metric tiles, not battery tile */
+        .tile:not(.tile-large) .tile-value-wrapper {
+            justify-content: center;
         }
 
         /* E2: Display medium for tile values */
