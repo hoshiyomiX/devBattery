@@ -6,16 +6,62 @@
     <meta name="theme-color" content="#1C1B1F">
     <title>devBattery Monitor</title>
     <style>
+        /* ===== E2: M3 TYPE SCALE ===== */
         :root {
-            /* Material Design 3 Colors */
-            --md-sys-color-primary: #D0BCFF;
-            --md-sys-color-on-primary: #381E72;
+            --md-sys-typescale-display-medium: 400 45px/52px 'Roboto', sans-serif;
+            --md-sys-typescale-headline-large: 400 32px/40px -0.25px 'Roboto', sans-serif;
+            --md-sys-typescale-headline-medium: 500 28px/36px 'Roboto', sans-serif;
+            --md-sys-typescale-title-large: 400 22px/28px 'Roboto', sans-serif;
+            --md-sys-typescale-title-medium: 500 16px/24px 0.15px 'Roboto', sans-serif;
+            --md-sys-typescale-body-medium: 400 14px/20px 'Roboto', sans-serif;
+            --md-sys-typescale-body-small: 400 12px/16px 'Roboto', sans-serif;
+            --md-sys-typescale-label-large: 500 14px/20px 0.1px 'Roboto', sans-serif;
+            --md-sys-typescale-label-medium: 500 12px/16px 0.5px 'Roboto', sans-serif;
+            --md-sys-typescale-label-small: 500 11px/16px 0.5px 'Roboto', sans-serif;
+        }
+
+        /* ===== E3: M3 SHAPE TOKENS ===== */
+        :root {
+            --md-sys-shape-corner-none: 0px;
+            --md-sys-shape-corner-extra-small: 4px;
+            --md-sys-shape-corner-small: 8px;
+            --md-sys-shape-corner-medium: 12px;
+            --md-sys-shape-corner-large: 16px;
+            --md-sys-shape-corner-extra-large: 28px;
+            --md-sys-shape-corner-full: 9999px;
+        }
+
+        /* ===== M3 MOTION DURATION (E7/E8) ===== */
+        :root {
+            --md-motion-duration-short: 200ms;
+            --md-motion-duration-medium: 300ms;
+            --md-motion-duration-long: 500ms;
+            --md-motion-duration-extra-long: 800ms;
+            --md-motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
+            --md-motion-emphasized-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
+            --md-motion-emphasized-accel: cubic-bezier(0.3, 0, 0.8, 0.15);
+            --md-motion-standard: cubic-bezier(0.2, 0, 0, 1);
+            --md-motion-spring: cubic-bezier(0.5, 1.5, 0.5, 1);
+        }
+
+        /* ===== E1: BATTERY-STATE ACCENT (defaults to purple baseline) ===== */
+        :root {
+            --battery-accent: #D0BCFF;
+            --battery-accent-on: #381E72;
+            --battery-accent-tertiary: #EFB8C8;
+            --battery-accent-shadow: rgba(208, 188, 255, 0.4);
+        }
+
+        /* ===== M3 COLOR TOKENS — DARK THEME (default) ===== */
+        :root {
+            --md-sys-color-primary: var(--battery-accent);
+            --md-sys-color-on-primary: var(--battery-accent-on);
             --md-sys-color-primary-container: #4F378B;
             --md-sys-color-on-primary-container: #EADDFF;
             --md-sys-color-secondary: #CCC2DC;
             --md-sys-color-secondary-container: #4A4458;
             --md-sys-color-on-secondary-container: #E8DEF8;
-            --md-sys-color-tertiary: #EFB8C8;
+            --md-sys-color-tertiary: var(--battery-accent-tertiary);
             --md-sys-color-tertiary-container: #633B48;
             --md-sys-color-on-tertiary-container: #FFD8E4;
             --md-sys-color-surface: #1C1B1F;
@@ -31,15 +77,38 @@
             --md-sys-color-error: #F2B8B5;
             --md-sys-color-on-error: #601410;
             --md-sys-color-error-container: #8C1D18;
-            
-            /* Motion */
-            --md-motion-emphasized: cubic-bezier(0.2, 0, 0, 1);
-            --md-motion-emphasized-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
-            --md-motion-emphasized-accel: cubic-bezier(0.3, 0, 0.8, 0.15);
-            --md-motion-standard: cubic-bezier(0.2, 0, 0, 1);
-            --md-motion-spring: cubic-bezier(0.5, 1.5, 0.5, 1);
+            --md-sys-color-inverse-surface: #E6E0E9;
+            --md-sys-color-inverse-on-surface: #322F35;
         }
-        
+
+        /* ===== LIGHT THEME BASE TOKENS ===== */
+        [data-theme="light"] {
+            --md-sys-color-primary-container: #EADDFF;
+            --md-sys-color-on-primary-container: #21005D;
+            --md-sys-color-secondary: #625B71;
+            --md-sys-color-secondary-container: #E8DEF8;
+            --md-sys-color-on-secondary-container: #1D192B;
+            --md-sys-color-tertiary-container: #FFD8E4;
+            --md-sys-color-on-tertiary-container: #31111D;
+            --md-sys-color-surface: #FFFBFE;
+            --md-sys-color-surface-dim: #DED8E1;
+            --md-sys-color-surface-bright: #FFFBFE;
+            --md-sys-color-surface-container: #F3EDF7;
+            --md-sys-color-surface-container-high: #ECE6F0;
+            --md-sys-color-surface-container-highest: #E6E0E9;
+            --md-sys-color-on-surface: #1C1B1F;
+            --md-sys-color-on-surface-variant: #49454F;
+            --md-sys-color-outline: #79747E;
+            --md-sys-color-outline-variant: #CAC4D0;
+            --md-sys-color-error: #B3261E;
+            --md-sys-color-on-error: #FFFFFF;
+            --md-sys-color-error-container: #F9DEDC;
+            --md-sys-color-inverse-surface: #322F35;
+            --md-sys-color-inverse-on-surface: #F5EFF7;
+        }
+
+        /* ===== KEYFRAME ANIMATIONS ===== */
+
         @keyframes bubbleRise {
             0% {
                 transform: translate3d(0, 0, 0) scale(0.8);
@@ -90,7 +159,7 @@
                 opacity: 0;
             }
         }
-        
+
         @keyframes dropletFall {
             0% {
                 transform: translate3d(0, 0, 0) translateZ(0);
@@ -101,63 +170,60 @@
                 opacity: 0;
             }
         }
-        
+
         @keyframes splashParticle {
             0% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
             25% { transform: translate3d(var(--splash-x), -8px, 0) scale(1.2); opacity: 0.9; }
             60% { transform: translate3d(calc(var(--splash-x) * 1.8), 2px, 0) scale(0.8); opacity: 0.6; }
             100% { transform: translate3d(calc(var(--splash-x) * 2.2), 12px, 0) scale(0.3); opacity: 0; }
         }
-        
+
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(32px) scale(0.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        
+
         @keyframes scaleIn {
             from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+            to { transform: scale(1); opacity: 1); }
         }
-        
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
+
         @keyframes slideInBottom {
             from { transform: translateY(100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-        
+
         @keyframes valueChange {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
-        
-        * { 
-            margin: 0; 
-            padding: 0; 
+
+        /* ===== RESET ===== */
+        * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
         }
-        
+
+        /* ===== LAYOUT ===== */
         body {
             background: var(--md-sys-color-surface);
             color: var(--md-sys-color-on-surface);
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font: var(--md-sys-typescale-body-medium);
             padding: 20px 16px;
             overflow-y: auto;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
             min-height: 100vh;
-            transition: background-color 0.3s ease, color 0.3s ease;
+            transition: background-color var(--md-motion-duration-medium) ease, color var(--md-motion-duration-medium) ease;
         }
-        
+
         .container {
             max-width: 480px;
             margin: 0 auto;
         }
-        
+
         .drain-leak-overlay {
             position: fixed;
             top: 0;
@@ -168,7 +234,8 @@
             z-index: 999;
             overflow: hidden;
         }
-        
+
+        /* ===== HEADER — E2 type scale ===== */
         .app-header {
             margin-bottom: 32px;
             padding: 4px 0;
@@ -177,12 +244,11 @@
             align-items: center;
             animation: fadeInUp 0.6s var(--md-motion-emphasized-decel);
         }
-        
+
         .header-left { flex: 1; }
-        
+
         .app-title {
-            font-size: 27px;
-            font-weight: 600;
+            font: var(--md-sys-typescale-headline-large);
             letter-spacing: -0.3px;
             margin-bottom: 6px;
             background: linear-gradient(135deg, var(--md-sys-color-on-surface) 0%, var(--md-sys-color-primary) 100%);
@@ -190,32 +256,31 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         .app-subtitle {
-            font-size: 14px;
+            font: var(--md-sys-typescale-body-medium);
             color: var(--md-sys-color-on-surface-variant);
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            transition: all 0.3s var(--md-motion-emphasized);
+            transition: all var(--md-motion-duration-medium) var(--md-motion-emphasized);
         }
-        
+
         .app-subtitle:active {
             color: var(--md-sys-color-primary);
             transform: scale(0.95);
         }
-        
+
         .telegram-icon {
             width: 18px;
             height: 18px;
         }
-        
+
         .root-badge {
             padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            border-radius: var(--md-sys-shape-corner-medium);
+            font: var(--md-sys-typescale-label-medium);
             display: flex;
             align-items: center;
             gap: 6px;
@@ -226,72 +291,74 @@
             background: var(--md-sys-color-surface-container-high);
             color: var(--md-sys-color-on-surface-variant);
         }
-        
+
         .root-badge:active { transform: scale(0.92); }
         .root-icon { font-size: 16px; }
-        
+
+        /* ===== TILES — E3 shape, E4 tonal elevation, E5 state layers ===== */
         .tiles-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 12px;
             margin-bottom: 24px;
         }
-        
+
         .tile {
             background: var(--md-sys-color-surface-container-high);
-            border-radius: 24px;
+            border-radius: var(--md-sys-shape-corner-large);
             padding: 20px;
             position: relative;
             overflow: hidden;
             cursor: pointer;
-            transition: all 0.4s var(--md-motion-emphasized);
+            transition: transform var(--md-motion-duration-long) var(--md-motion-emphasized),
+                        box-shadow var(--md-motion-duration-long) var(--md-motion-emphasized);
             animation: scaleIn 0.5s var(--md-motion-emphasized-decel);
+            /* E4: Tonal elevation */
+            box-shadow: 0 0 0 1px var(--md-sys-color-outline-variant),
+                        0 1px 3px 1px rgba(0, 0, 0, 0.15),
+                        0 4px 8px 3px rgba(0, 0, 0, 0.10);
         }
-        
-        .tile::before {
+
+        /* E5: M3 State Layer — replaces ripple */
+        .tile::after {
             content: '';
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: radial-gradient(circle, var(--md-sys-color-primary) 0%, transparent 70%);
+            inset: 0;
+            border-radius: inherit;
+            background: var(--md-sys-color-primary);
             opacity: 0;
-            transform: translate(-50%, -50%);
-            transition: all 0.5s var(--md-motion-emphasized);
+            transition: opacity var(--md-motion-duration-short) ease;
+            pointer-events: none;
+            z-index: 2;
         }
-        
-        .tile:active::before {
-            width: 200%;
-            height: 200%;
-            opacity: 0.15;
-        }
-        
+
+        .tile:active::after { opacity: 0.12; }
+
         .tile:active {
             transform: scale(0.95);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 0 1px var(--md-sys-color-outline-variant),
+                        0 2px 6px 2px rgba(0, 0, 0, 0.20),
+                        0 8px 16px 6px rgba(0, 0, 0, 0.14);
         }
-        
+
         .tile:nth-child(1) { animation-delay: 0ms; }
         .tile:nth-child(2) { animation-delay: 80ms; }
         .tile:nth-child(3) { animation-delay: 160ms; }
         .tile:nth-child(4) { animation-delay: 240ms; }
         .tile:nth-child(5) { animation-delay: 320ms; }
         .tile:nth-child(6) { animation-delay: 400ms; }
-        
+
+        /* E2: Label small type scale for tile labels */
         .tile-label {
-            font-size: 11px;
-            font-weight: 700;
+            font: var(--md-sys-typescale-label-small);
             color: var(--md-sys-color-on-surface-variant);
             text-transform: uppercase;
-            letter-spacing: 1.2px;
             margin-bottom: 12px;
             opacity: 0.8;
             position: relative;
             z-index: 10;
         }
-        
+
         .tile-value-wrapper {
             display: flex;
             align-items: baseline;
@@ -299,59 +366,64 @@
             position: relative;
             z-index: 10;
         }
-        
+
+        /* E2: Display medium for tile values */
         .tile-value {
-            font-size: 36px;
-            font-weight: 400;
+            font: var(--md-sys-typescale-headline-medium);
             color: var(--md-sys-color-on-surface);
             line-height: 1;
             font-variant-numeric: tabular-nums;
             transition: all 0.3s var(--md-motion-spring);
         }
-        
+
         .tile-value.updating {
             animation: valueChange 0.4s var(--md-motion-spring);
         }
-        
+
         .tile-unit {
             font-size: 18px;
             font-weight: 400;
             color: var(--md-sys-color-on-surface-variant);
             opacity: 0.7;
         }
-        
+
+        /* ===== BATTERY TILE — E3 shape (extra-large), E9 progress ring ===== */
         .tile-large {
             grid-column: span 2;
             background: var(--md-sys-color-surface-container-high);
             padding: 28px;
             min-height: 200px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            box-shadow: 0 0 0 1px var(--md-sys-color-outline-variant),
+                        0 1px 3px 1px rgba(0, 0, 0, 0.15),
+                        0 4px 8px 3px rgba(0, 0, 0, 0.10);
         }
-        
+
         .tile-large .tile-label {
-            font-size: 18px;
+            font: var(--md-sys-typescale-title-large);
             color: #FFFFFF;
             opacity: 0.9;
             font-weight: 600;
             letter-spacing: 0.5px;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
-        
+
+        /* E2: Display medium for large tile value */
         .tile-large .tile-value {
-            font-size: 72px;
+            font: var(--md-sys-typescale-display-medium);
             color: #FFFFFF;
             font-weight: 300;
             letter-spacing: -3px;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
-        
+
         .tile-large .tile-unit {
             font-size: 32px;
             color: #FFFFFF;
             opacity: 0.8;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
-        
+
         .liquid-container {
             position: absolute;
             top: 0;
@@ -359,21 +431,24 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            border-radius: 24px;
+            border-radius: var(--md-sys-shape-corner-extra-large);
             pointer-events: none;
             z-index: 1;
         }
-        
+
+        /* E8: Liquid motion — use M3 emphasized-decel for rising fill */
         .liquid {
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
             height: 0%;
-            transition: height 0.8s cubic-bezier(0.4, 0.0, 0.2, 1), background 0.5s ease;
+            transition: height var(--md-motion-duration-extra-long) var(--md-motion-emphasized-decel),
+                        background 0.5s ease;
             transform-origin: center bottom;
+            contain: layout style paint;
         }
-        
+
         .bubble {
             position: absolute;
             bottom: 0;
@@ -391,7 +466,8 @@
             backface-visibility: hidden;
             contain: layout style paint;
         }
-        
+
+        /* ===== DRAIN EFFECTS ===== */
         .drain-drip {
             position: fixed;
             width: 10px;
@@ -408,7 +484,7 @@
             will-change: transform, opacity;
             contain: layout style paint;
         }
-        
+
         .splash-particle {
             position: fixed;
             width: 4px;
@@ -421,12 +497,13 @@
             transform: translateZ(0);
             backface-visibility: hidden;
         }
-        
+
+        /* ===== STATUS TEXT — E2 type scale ===== */
         .status-text {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            font-size: 14px;
+            font: var(--md-sys-typescale-label-large);
             font-weight: 600;
             transition: all 0.4s var(--md-motion-spring);
             animation: slideInBottom 0.6s var(--md-motion-emphasized-decel) 0.3s both;
@@ -435,7 +512,8 @@
             opacity: 0.9;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
         }
-        
+
+        /* ===== ACTION BUTTONS — E2 type scale, E6 SVG icons ===== */
         .action-buttons {
             display: flex;
             flex-direction: column;
@@ -443,15 +521,13 @@
             margin-top: 24px;
             animation: fadeInUp 0.7s var(--md-motion-emphasized) 0.5s both;
         }
-        
+
         .md-button {
             width: 100%;
             height: 56px;
             border: none;
-            border-radius: 28px;
-            font-size: 15px;
-            font-weight: 600;
-            letter-spacing: 0.2px;
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            font: var(--md-sys-typescale-label-large);
             cursor: pointer;
             font-family: inherit;
             display: flex;
@@ -460,75 +536,140 @@
             gap: 12px;
             position: relative;
             overflow: hidden;
-            transition: all 0.4s var(--md-motion-emphasized);
+            transition: transform var(--md-motion-duration-long) var(--md-motion-emphasized),
+                        box-shadow var(--md-motion-duration-long) var(--md-motion-emphasized);
         }
-        
+
+        /* E5: State layer for buttons */
         .md-button::before {
             content: '';
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
+            inset: 0;
+            border-radius: inherit;
             background: currentColor;
             opacity: 0;
-            transform: translate(-50%, -50%);
-            transition: all 0.6s var(--md-motion-emphasized);
+            transition: opacity var(--md-motion-duration-short) ease;
+            pointer-events: none;
+            z-index: 0;
         }
-        
-        .md-button:active::before {
-            width: 300%;
-            height: 300%;
-            opacity: 0.2;
-        }
-        
+
+        .md-button:active::before { opacity: 0.12; }
         .md-button:active { transform: scale(0.94); }
-        
+
+        /* E6: SVG icon container */
+        .md-button .icon {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+            transition: transform 0.3s var(--md-motion-spring);
+            position: relative;
+            z-index: 1;
+        }
+
+        .md-button .icon svg {
+            width: 100%;
+            height: 100%;
+            fill: currentColor;
+        }
+
+        .md-button .btn-label {
+            position: relative;
+            z-index: 1;
+        }
+
+        .md-button:active .icon { transform: scale(1.2) rotate(10deg); }
+
         .md-button-filled {
             background: linear-gradient(135deg, var(--md-sys-color-primary) 0%, var(--md-sys-color-tertiary) 100%);
             color: var(--md-sys-color-on-primary);
-            box-shadow: 0 6px 20px rgba(208, 188, 255, 0.4);
+            box-shadow: 0 6px 20px var(--battery-accent-shadow);
         }
-        
+
         .md-button-filled:active {
-            box-shadow: 0 12px 32px rgba(208, 188, 255, 0.6);
+            box-shadow: 0 12px 32px var(--battery-accent-shadow);
         }
-        
+
         .md-button-outlined {
             background: transparent;
             color: var(--md-sys-color-primary);
             border: 2px solid var(--md-sys-color-outline);
         }
-        
+
         .md-button-outlined:active {
             background: rgba(208, 188, 255, 0.12);
             border-color: var(--md-sys-color-primary);
         }
-        
-        .icon {
-            font-style: normal;
-            font-size: 22px;
-            transition: transform 0.3s var(--md-motion-spring);
-        }
-        
-        .md-button:active .icon { transform: scale(1.2) rotate(10deg); }
-        
+
+        /* ===== DEBUG CARD — E3 shape (medium), E7 shared axis ===== */
         .debug-card {
-            margin-top: 24px;
+            margin-top: 0;
             background: var(--md-sys-color-surface-container);
-            border-radius: 24px;
-            padding: 24px;
-            display: none;
-            max-height: 500px;
-            overflow-y: auto;
-            animation: fadeInUp 0.5s var(--md-motion-emphasized);
-            border: 1px solid var(--md-sys-color-outline-variant);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            border-radius: var(--md-sys-shape-corner-medium);
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transform: translateY(24px) scale(0.96);
+            pointer-events: none;
+            padding: 0 24px;
+            border: 1px solid transparent;
+            /* E7: Shared axis Z transition */
+            transition:
+                max-height var(--md-motion-duration-long) var(--md-motion-emphasized-decel),
+                opacity var(--md-motion-duration-medium) ease,
+                transform var(--md-motion-duration-long) var(--md-motion-emphasized-decel),
+                margin-top var(--md-motion-duration-long) var(--md-motion-emphasized-decel),
+                padding var(--md-motion-duration-long) var(--md-motion-emphasized-decel),
+                border-color var(--md-motion-duration-medium) ease;
         }
-        
-        .debug-card.show { display: block; }
-        
+
+        .debug-card.show {
+            max-height: 500px;
+            opacity: 1;
+            overflow-y: auto;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+            margin-top: 24px;
+            padding: 24px;
+            border-color: var(--md-sys-color-outline-variant);
+        }
+
+        .debug-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .debug-card-title {
+            font: var(--md-sys-typescale-title-medium);
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .debug-close-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            border-radius: var(--md-sys-shape-corner-full);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--md-sys-color-on-surface-variant);
+            transition: background var(--md-motion-duration-short) ease;
+            padding: 0;
+        }
+
+        .debug-close-btn:active {
+            background: var(--md-sys-color-surface-container-highest);
+        }
+
+        .debug-close-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
         .debug-card pre {
             font-family: 'Roboto Mono', 'SF Mono', monospace;
             font-size: 10px;
@@ -537,9 +678,89 @@
             white-space: pre-wrap;
             word-break: break-all;
         }
-        
 
-        
+        /* ===== E9: CIRCULAR PROGRESS RING ===== */
+        .progress-ring {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 48px;
+            height: 48px;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity var(--md-motion-duration-medium) ease;
+        }
+
+        .progress-ring.visible { opacity: 1; }
+
+        .progress-ring svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring-track {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.15);
+            stroke-width: 2.5;
+        }
+
+        .progress-ring-indicator {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.7);
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            transition: stroke-dashoffset var(--md-motion-duration-long) var(--md-motion-emphasized-decel);
+        }
+
+        /* ===== E10: SNACKBAR ===== */
+        .md-snackbar {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--md-sys-color-inverse-surface);
+            color: var(--md-sys-color-inverse-on-surface);
+            border-radius: var(--md-sys-shape-corner-extra-small);
+            padding: 14px 24px;
+            font: var(--md-sys-typescale-body-medium);
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: transform var(--md-motion-duration-long) var(--md-motion-emphasized-decel),
+                        opacity var(--md-motion-duration-medium) ease;
+            max-width: calc(100% - 48px);
+        }
+
+        .md-snackbar.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* ===== E12: FOCUS INDICATORS ===== */
+        .md-button:focus-visible {
+            outline: 2px solid var(--md-sys-color-primary);
+            outline-offset: 2px;
+        }
+
+        .tile:focus-visible {
+            outline: 2px solid var(--md-sys-color-secondary);
+            outline-offset: 2px;
+        }
+
+        .debug-close-btn:focus-visible {
+            outline: 2px solid var(--md-sys-color-primary);
+            outline-offset: 2px;
+        }
+
+        a:focus-visible {
+            outline: 2px solid var(--md-sys-color-primary);
+            outline-offset: 4px;
+            border-radius: var(--md-sys-shape-corner-extra-small);
+        }
+
+        /* ===== SCROLLBAR ===== */
         ::-webkit-scrollbar { width: 10px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb {
@@ -552,12 +773,13 @@
 </head>
 <body>
     <div class="drain-leak-overlay" id="drain-leak-overlay"></div>
-    
-    <div class="container">
+
+    <!-- E11: Semantic HTML -->
+    <main class="container" role="main">
         <header class="app-header">
             <div class="header-left">
                 <h1 class="app-title">devBattery Monitor</h1>
-                <a href="https://t.me/hoshiyomi_id" class="app-subtitle">
+                <a href="https://t.me/hoshiyomi_id" class="app-subtitle" aria-label="Contact on Telegram">
                     <svg class="telegram-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
                     </svg>
@@ -565,13 +787,24 @@
                 </a>
             </div>
         </header>
-        
-        <div class="tiles-grid">
-            <div class="tile tile-large" id="tile-capacity">
+
+        <!-- E11: Section with ARIA -->
+        <section class="tiles-grid" aria-label="Battery metrics">
+            <!-- E11: role="meter" + ARIA for battery tile -->
+            <article class="tile tile-large" id="tile-capacity" role="meter" aria-label="Battery level" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                 <div class="liquid-container" id="liquid-container">
                     <div class="liquid" id="liquid"></div>
                 </div>
-                
+
+                <!-- E9: Circular progress ring -->
+                <div class="progress-ring" id="progress-ring">
+                    <svg viewBox="0 0 48 48">
+                        <circle cx="24" cy="24" r="21" class="progress-ring-track" />
+                        <circle cx="24" cy="24" r="21" class="progress-ring-indicator" id="progress-ring-bar"
+                                stroke-dasharray="131.95" stroke-dashoffset="131.95" />
+                    </svg>
+                </div>
+
                 <div class="tile-label">Battery</div>
                 <div class="tile-value-wrapper">
                     <span class="tile-value" id="capacity-value">--</span>
@@ -580,59 +813,78 @@
                 <div class="status-text" id="status-text">
                     <span id="status-label">--</span>
                 </div>
-            </div>
-            
-            <div class="tile" id="tile-current">
+            </article>
+
+            <article class="tile" id="tile-current" aria-label="Current draw">
                 <div class="tile-label">Current</div>
                 <div class="tile-value-wrapper">
                     <span class="tile-value" id="current-value">--</span>
                     <span class="tile-unit">mA</span>
                 </div>
-            </div>
-            
-            <div class="tile" id="tile-power">
+            </article>
+
+            <article class="tile" id="tile-power" aria-label="Power consumption">
                 <div class="tile-label">Power</div>
                 <div class="tile-value-wrapper">
                     <span class="tile-value" id="power-value">--</span>
                     <span class="tile-unit">W</span>
                 </div>
-            </div>
-            
-            <div class="tile" id="tile-voltage">
+            </article>
+
+            <article class="tile" id="tile-voltage" aria-label="Voltage reading">
                 <div class="tile-label" id="voltage-label">Voltage</div>
                 <div class="tile-value-wrapper">
                     <span class="tile-value" id="voltage-value">--</span>
                     <span class="tile-unit">V</span>
                 </div>
-            </div>
-            
-            <div class="tile" id="tile-temp">
+            </article>
+
+            <article class="tile" id="tile-temp" aria-label="Temperature">
                 <div class="tile-label">Temperature</div>
                 <div class="tile-value-wrapper">
                     <span class="tile-value" id="temp-value">--</span>
-                    <span class="tile-unit">°C</span>
+                    <span class="tile-unit">&deg;C</span>
                 </div>
-            </div>
-        </div>
-        
-        <div class="action-buttons">
+            </article>
+        </section>
+
+        <!-- E6: SVG icons replace emoji, E12 focus support -->
+        <div class="action-buttons" role="group" aria-label="Actions">
             <button class="md-button md-button-filled" onclick="showDebug()">
-                <span class="icon">🔍</span>
-                <span>Show Debug Info</span>
+                <span class="icon">
+                    <svg viewBox="0 0 24 24"><path d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C12.96 5.06 12.49 5 12 5c-.49 0-.96.06-1.41.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8zm-6 8h-4v-2h4v2zm0-4h-4v-2h4v2z"/></svg>
+                </span>
+                <span class="btn-label">Show Debug Info</span>
             </button>
             <button class="md-button md-button-outlined" onclick="copyDebug()">
-                <span class="icon">📋</span>
-                <span>Copy to Clipboard</span>
+                <span class="icon">
+                    <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                </span>
+                <span class="btn-label">Copy to Clipboard</span>
             </button>
             <button class="md-button md-button-filled" id="bubble-toggle-btn" onclick="toggleBubbleSimulation()">
-                <span class="icon">🫧</span>
-                <span id="bubble-btn-text">Bubbles: Off</span>
+                <span class="icon">
+                    <svg viewBox="0 0 24 24"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8zm0 18c-3.35 0-6-2.57-6-6.2 0-2.34 1.95-5.44 6-9.14 4.05 3.7 6 6.79 6 9.14 0 3.63-2.65 6.2-6 6.2z"/></svg>
+                </span>
+                <span class="btn-label" id="bubble-btn-text">Bubbles: Off</span>
             </button>
         </div>
-        
-        <div class="debug-card" id="debug-card">
+
+        <!-- E7: Debug card with shared-axis transition, E11: aside landmark -->
+        <aside class="debug-card" id="debug-card" aria-label="Debug information" aria-hidden="true">
+            <div class="debug-card-header">
+                <span class="debug-card-title">Debug Info</span>
+                <button class="debug-close-btn" onclick="showDebug()" aria-label="Close debug info">
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
             <pre id="debug-output"></pre>
-        </div>
+        </aside>
+    </main>
+
+    <!-- E10: Snackbar -->
+    <div class="md-snackbar" id="snackbar" role="status" aria-live="polite">
+        <span id="snackbar-text"></span>
     </div>
 
     <script src="js/battery.js"></script>

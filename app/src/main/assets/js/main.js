@@ -32,21 +32,61 @@
     // Manual bubble simulation toggle state
     let isBubbleSimulationEnabled = false;
     
-    // Theme management
+    // E1: M3 Expressive — Battery-state dynamic color schemes
+    const BATTERY_SCHEMES = {
+        critical: {
+            dark:  { primary: '#F44336', onPrimary: '#FFFFFF', tertiary: '#EF9A9A', shadow: 'rgba(244, 67, 54, 0.3)' },
+            light: { primary: '#B3261E', onPrimary: '#FFFFFF', tertiary: '#F44336', shadow: 'rgba(179, 38, 30, 0.2)' }
+        },
+        low: {
+            dark:  { primary: '#FF5722', onPrimary: '#FFFFFF', tertiary: '#FFAB91', shadow: 'rgba(255, 87, 34, 0.3)' },
+            light: { primary: '#D84315', onPrimary: '#FFFFFF', tertiary: '#FF5722', shadow: 'rgba(216, 67, 21, 0.2)' }
+        },
+        moderate: {
+            dark:  { primary: '#FFB74D', onPrimary: '#462C00', tertiary: '#FFCC80', shadow: 'rgba(255, 183, 77, 0.3)' },
+            light: { primary: '#F57C00', onPrimary: '#FFFFFF', tertiary: '#FFB74D', shadow: 'rgba(245, 124, 0, 0.2)' }
+        },
+        good: {
+            dark:  { primary: '#4DB6AC', onPrimary: '#003731', tertiary: '#80CBC4', shadow: 'rgba(77, 182, 172, 0.3)' },
+            light: { primary: '#00897B', onPrimary: '#FFFFFF', tertiary: '#4DB6AC', shadow: 'rgba(0, 137, 123, 0.2)' }
+        },
+        healthy: {
+            dark:  { primary: '#81C784', onPrimary: '#00391D', tertiary: '#A5D6A7', shadow: 'rgba(129, 199, 132, 0.3)' },
+            light: { primary: '#388E3C', onPrimary: '#FFFFFF', tertiary: '#81C784', shadow: 'rgba(56, 142, 60, 0.2)' }
+        }
+    };
+
+    // E1: Apply battery-state color scheme to accent tokens
+    function applyBatteryColor(percentage) {
+        let scheme;
+        if (percentage <= 19) scheme = 'critical';
+        else if (percentage <= 39) scheme = 'low';
+        else if (percentage <= 59) scheme = 'moderate';
+        else if (percentage <= 79) scheme = 'good';
+        else scheme = 'healthy';
+
+        const colors = BATTERY_SCHEMES[scheme][currentTheme];
+        const root = document.documentElement;
+
+        root.style.setProperty('--battery-accent', colors.primary);
+        root.style.setProperty('--battery-accent-on', colors.onPrimary);
+        root.style.setProperty('--battery-accent-tertiary', colors.tertiary);
+        root.style.setProperty('--battery-accent-shadow', colors.shadow);
+    }
+    
+    // Theme management — uses data-theme attribute for base tokens
     function applyTheme(theme) {
         currentTheme = theme;
         const root = document.documentElement;
         
-        if (theme === 'light') {
-            root.style.setProperty('--md-sys-color-primary', '#6750A4');
-            root.style.setProperty('--md-sys-color-surface', '#FFFBFE');
-            root.style.setProperty('--md-sys-color-on-surface', '#1C1B1F');
-            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#FFFBFE');
-        } else {
-            root.style.setProperty('--md-sys-color-primary', '#D0BCFF');
-            root.style.setProperty('--md-sys-color-surface', '#1C1B1F');
-            root.style.setProperty('--md-sys-color-on-surface', '#E6E0E9');
-            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#1C1B1F');
+        root.setAttribute('data-theme', theme);
+        
+        const themeColor = theme === 'light' ? '#FFFBFE' : '#1C1B1F';
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', themeColor);
+        
+        // Re-apply battery accent for new theme
+        if (currentCapacity > 0) {
+            applyBatteryColor(currentCapacity);
         }
     }
     
@@ -388,6 +428,23 @@
         previousValues[elementId] = newValue;
     }
     
+    // E9: Circular progress ring update
+    function updateProgressRing(percentage) {
+        const bar = document.getElementById('progress-ring-bar');
+        const ring = document.getElementById('progress-ring');
+        if (!bar || !ring) return;
+
+        const circumference = 131.95;
+        const offset = circumference * (1 - percentage / 100);
+        bar.setAttribute('stroke-dashoffset', Math.max(0, offset));
+
+        if (percentage > 0) {
+            ring.classList.add('visible');
+        } else {
+            ring.classList.remove('visible');
+        }
+    }
+
     // Battery data update using BatteryManager
     function updateBatteryData(data) {
         if (data.error) {
@@ -400,15 +457,13 @@
         const voltageDisplayLabel = data.voltageDisplayLabel || 'Voltage';
         const voltageSourceInfo = data.voltageSourceInfo || 'Unknown source';
         
-        // Debug info untuk voltage source
-        console.log(`Voltage source: ${data.source}, Label: ${voltageDisplayLabel}, Info: ${voltageSourceInfo}`);
+        console.log('Voltage source: ' + data.source + ', Label: ' + voltageDisplayLabel + ', Info: ' + voltageSourceInfo);
         
         const voltage = formatNumber(data.voltageV || 0, 2);
         const current = data.currentMA || 0;
         const temperature = formatNumber(data.temperatureC || 0, 1);
         const power = formatPower(data.powerW || 0);
         
-        // Update global current MA for spawn logic
         currentMA = current;
         
         if (status !== "Unknown") lastStatus = status;
@@ -416,7 +471,6 @@
         animateValue('capacity-value', capacity);
         document.getElementById('status-label').textContent = lastStatus;
         
-        // Update voltage label dynamically
         document.getElementById('voltage-label').textContent = voltageDisplayLabel;
         animateValue('voltage-value', voltage);
         
@@ -426,36 +480,76 @@
         
         updateLiquid(capacity);
         
+        // E1: Dynamic color from battery state
+        applyBatteryColor(capacity);
+        
+        // E9: Update circular progress ring
+        updateProgressRing(capacity);
+        
+        // E11: Update ARIA on battery meter
+        const tileCapacity = document.getElementById('tile-capacity');
+        if (tileCapacity) {
+            tileCapacity.setAttribute('aria-valuenow', String(capacity));
+            tileCapacity.setAttribute('aria-label', 'Battery level: ' + capacity + '% ' + lastStatus);
+        }
+        
         const chargingActive = data.isCharging || false;
         
-        // Logic: If manual toggle is ON, use that. If OFF, use battery status.
         if (isBubbleSimulationEnabled) {
             toggleBubbleSpawning(true);
         } else {
             toggleBubbleSpawning(chargingActive);
         }
         
-        // Update isCharging for other logic that depends on it
         isCharging = isBubbleSimulationEnabled || chargingActive;
         
         const isDraining = data.isDischarging || false;
         toggleDrainLeak(isDraining);
     }
     
-    // Debug functions
+    // E10: M3 Snackbar
+    let snackbarTimeout = null;
+    function showSnackbar(message) {
+        const snackbar = document.getElementById('snackbar');
+        const text = document.getElementById('snackbar-text');
+        if (!snackbar || !text) return;
+
+        text.textContent = message;
+        if (snackbarTimeout) clearTimeout(snackbarTimeout);
+        snackbar.classList.add('show');
+
+        snackbarTimeout = setTimeout(function() {
+            snackbar.classList.remove('show');
+        }, 2500);
+    }
+
+    // E7: Debug card toggle with shared-axis transition
     function showDebug() {
-        try {
-            debugData = Android.getDebugInfo();
+        var card = document.getElementById('debug-card');
+        if (!card) return;
+
+        if (card.classList.contains('show')) {
+            // Close
+            card.classList.remove('show');
+            card.setAttribute('aria-hidden', 'true');
+        } else {
+            // Open
+            try {
+                debugData = Android.getDebugInfo();
+            } catch (e) {
+                debugData = 'Android debug info not available';
+            }
             document.getElementById('debug-output').textContent = debugData;
-            document.getElementById('debug-card').classList.add('show');
-        } catch (e) {
+            card.classList.add('show');
+            card.setAttribute('aria-hidden', 'false');
         }
     }
     
+    // E10: Copy with snackbar feedback
     function copyDebug() {
         if (!debugData) showDebug();
         
-        const textarea = document.createElement('textarea');
+        var textarea = document.createElement('textarea');
         textarea.value = debugData;
         textarea.style.position = 'fixed';
         textarea.style.opacity = '0';
@@ -474,6 +568,7 @@
         }
         
         document.body.removeChild(textarea);
+        showSnackbar('Copied to clipboard');
     }
     
     function toggleBubbleSimulation() {
@@ -494,6 +589,7 @@
     window.copyDebug = copyDebug;
     window.toggleBubbleSimulation = toggleBubbleSimulation;
     window.applyTheme = applyTheme;
+    window.showSnackbar = showSnackbar;
     
     // Initialize
     try {
